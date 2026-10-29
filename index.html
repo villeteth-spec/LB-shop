@@ -1,0 +1,1296 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>[hidden]{display:none!important}img{max-width:100%}</style>
+</head>
+<body>
+<title>Opération LB Shop</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=IBM+Plex+Mono:wght@500;600&family=Monoton&display=swap">
+<style>
+/* Layout : la façade du LB Shop la nuit en ouverture (elle s'allume avec les missions validées), puis onglets ; les équipes ont une carte de fidélité à tampons */
+:root{
+  --bg:#F1EFF4; --paper:#FFFFFF; --ink:#1B1626; --muted:#625A72; --line:#D6D0DF; --soft:#E7E3EE;
+  --glow:#FFC94A; --glow-ink:#2B1E00;
+  --p1:#0E8577; --p2:#6A45C9; --p3:#D0397A; --p4:#D9711C;
+  --ok:#1F7D43; --err:#C2402C;
+  /* scène de nuit : identique dans les deux thèmes */
+  --night:#140F22; --night2:#251C3B; --brick:#2E2340; --brick2:#3A2D50; --pane:#0B0816; --frame:#5A4B78; --off:#3B3150;
+  --f-display:"Bricolage Grotesque", "Arial Narrow", system-ui, sans-serif;
+  --f-body:"Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono:"IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+  --f-neon:"Monoton", "Bricolage Grotesque", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#110E18; --paper:#1A1624; --ink:#ECE8F3; --muted:#A79EB8; --line:#30293F; --soft:#241E31;
+  --glow:#FFCF5C; --glow-ink:#241900;
+  --p1:#3CC4B3; --p2:#A88BFF; --p3:#F26AA6; --p4:#F59A4E; --ok:#5BC77E; --err:#F07A63; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#110E18; --paper:#1A1624; --ink:#ECE8F3; --muted:#A79EB8; --line:#30293F; --soft:#241E31;
+  --glow:#FFCF5C; --glow-ink:#241900;
+  --p1:#3CC4B3; --p2:#A88BFF; --p3:#F26AA6; --p4:#F59A4E; --ok:#5BC77E; --err:#F07A63; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.55;margin:0}
+.wrap{max-width:1100px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0}
+h1,h2,h3,h4{font-family:var(--f-display);line-height:1.15;text-wrap:balance;margin:0}
+h2{font-size:1.7rem;font-weight:800;letter-spacing:-.01em}
+h3{font-size:1.2rem;font-weight:700}
+p{margin:0}
+.label{font-family:var(--f-mono);font-size:.73rem;text-transform:uppercase;letter-spacing:.09em;color:var(--muted)}
+.mono{font-family:var(--f-mono);font-weight:600}
+button,select,input,textarea{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--glow);outline-offset:2px}
+.muted{color:var(--muted)}
+.stack{display:grid;gap:12px}
+ul.clean{margin:0;padding-left:1.2em;display:grid;gap:6px}
+.panel{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:22px}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:18px}
+.grid4{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));gap:14px}
+.tablewrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:560px}
+th,td{padding:10px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{font-family:var(--f-mono);font-size:.74rem;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:600}
+.chip{display:inline-flex;align-items:center;gap:6px;font-family:var(--f-mono);font-size:.72rem;font-weight:600;padding:3px 9px;border-radius:99px;background:var(--soft);text-transform:uppercase;letter-spacing:.05em}
+.chip.c{background:var(--c);color:#fff}
+
+/* ===== HERO : façade ===== */
+.hero{background:radial-gradient(120% 90% at 50% 0%,var(--night2),var(--night) 70%);color:#EDE7F7}
+.hero .wrap{padding-block:26px 30px;display:grid;gap:20px}
+.hero-top{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;align-items:end}
+.hero .label{color:#B5A9CF}
+.hero h1{font-size:clamp(1.9rem,5.5vw,3.2rem);font-weight:800;letter-spacing:-.02em;color:#fff}
+.hero .lede{max-width:60ch;color:#CFC6E2}
+.facade{width:100%;max-width:100%;height:auto;display:block}
+.facade text{font-family:var(--f-mono)}
+.neon{font-family:var(--f-neon);font-size:54px;fill:var(--off);transition:fill .6s, filter .6s}
+.neon.on{fill:#FFE9A8;filter:url(#neonGlow)}
+.pane-glow{transition:opacity .8s}
+.bulb{fill:var(--off);stroke:#5d4f7a;stroke-width:1.5;transition:fill .5s}
+.bulb.rendu{fill:none;stroke:var(--glow);stroke-dasharray:3 3;animation:blink 1.8s ease-in-out infinite}
+.bulb.valide{fill:var(--glow);stroke:#FFF1C4;filter:url(#bulbGlow)}
+@keyframes blink{50%{opacity:.35}}
+.garland circle{fill:var(--off);transition:fill .5s}
+.garland.on circle{fill:var(--glow);filter:url(#bulbGlow)}
+.garland.on circle:nth-child(3n){fill:#FF7EB6}
+.garland.on circle:nth-child(3n+1){fill:#7EE0D2}
+.meter{display:grid;gap:8px}
+.meterbar{height:12px;border-radius:99px;background:#2A2140;overflow:hidden}
+.meterbar span{display:block;height:100%;background:linear-gradient(90deg,var(--glow),#FF9EC8);border-radius:99px;transition:width .8s}
+.hero .seg button{background:transparent;color:#EDE7F7;border-color:#4A3D66}
+.hero .seg button[aria-pressed="true"]{background:var(--glow);color:var(--glow-ink);border-color:var(--glow)}
+.concours{border:2px solid var(--p3);border-radius:10px;padding:14px 16px;display:grid;gap:8px;background:color-mix(in srgb,var(--p3) 8%,var(--paper))}
+.hero-stats{display:flex;flex-wrap:wrap;gap:22px;align-items:center}
+.big{font-family:var(--f-display);font-weight:800;font-size:2.4rem;line-height:1;color:var(--glow)}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:.85rem;color:#CFC6E2}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:6px;vertical-align:-1px}
+
+/* Calendrier novembre */
+.cal{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.week{border:1px solid #3F3359;border-radius:8px;padding:10px 12px;display:grid;gap:2px;position:relative;overflow:hidden}
+.week b{font-family:var(--f-mono);color:#fff}
+.week span{font-size:.8rem;color:#B5A9CF}
+.week .fill{position:absolute;inset:auto 0 0 0;height:4px;background:var(--glow);transform-origin:left;transition:transform .8s}
+.week.now{border-color:var(--glow);box-shadow:0 0 0 1px var(--glow) inset}
+@media (max-width:560px){.cal{grid-template-columns:1fr 1fr}}
+
+/* Onglets */
+nav.tabs{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);border-bottom:1px solid var(--line)}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+.tabrow{display:flex;gap:4px;overflow-x:auto;padding-block:8px}
+.tab{background:none;border:0;padding:8px 14px;border-radius:8px;cursor:pointer;white-space:nowrap;font-weight:700;color:var(--muted)}
+.tab[aria-selected="true"]{background:var(--ink);color:var(--bg)}
+.tab:hover:not([aria-selected="true"]){background:var(--soft);color:var(--ink)}
+main{padding-block:28px 64px}
+section.view{display:grid;gap:28px}
+
+/* Note de service */
+.memo{background:var(--paper);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.memo-head{display:grid;grid-template-columns:auto 1fr;gap:4px 16px;padding:18px 22px;border-bottom:2px solid var(--ink);font-size:.92rem}
+.memo-head dt{font-family:var(--f-mono);font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);padding-top:2px}
+.memo-head dd{margin:0;font-weight:700}
+.memo-body{padding:22px;display:grid;gap:14px;max-width:72ch}
+.memo-body h2{font-size:1.5rem}
+.sign{font-style:italic;color:var(--muted)}
+.contract{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));gap:1px;background:var(--line);border-top:1px solid var(--line)}
+.contract div{background:var(--paper);padding:14px 18px;display:grid;gap:2px}
+.contract b{font-family:var(--f-display);font-size:1.05rem}
+
+/* Cartes de fidélité */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:14px}
+.loyal{background:var(--paper);border:1.5px solid var(--ink);border-radius:14px;padding:16px;display:grid;gap:12px;position:relative}
+.loyal-top{display:flex;justify-content:space-between;align-items:baseline}
+.loyal-top b{font-family:var(--f-display);font-size:1.3rem}
+.stamps{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.stamp{aspect-ratio:1;max-width:100%;border-radius:50%;border:2px dashed var(--line);display:grid;place-items:center;font-family:var(--f-mono);font-weight:600;font-size:.8rem;color:var(--muted);position:relative;background:none;padding:0}
+.stamp.rendu{border-color:var(--c);color:var(--c)}
+.stamp.valide{border:2px solid var(--c);background:var(--c);color:#fff;transform:rotate(-12deg)}
+.stamp.valide::after{content:"✓";position:absolute;right:-4px;top:-6px;width:18px;height:18px;border-radius:50%;background:var(--glow);color:var(--glow-ink);font-size:.7rem;display:grid;place-items:center}
+button.stamp{cursor:pointer}
+.loyal small{color:var(--muted)}
+
+/* Pôles */
+.pole{background:var(--paper);border:1px solid var(--line);border-radius:10px;overflow:hidden;display:grid}
+.pole-h{background:var(--c);color:#fff;padding:16px 18px;display:grid;gap:2px}
+.pole-h .n{font-family:var(--f-mono);font-size:.75rem;letter-spacing:.1em;opacity:.85}
+.pole-h h3{font-size:1.25rem}
+.pole-h em{font-style:normal;opacity:.9}
+.pole-b{padding:16px 18px;display:grid;gap:12px;align-content:start}
+.ref{font-size:.85rem;color:var(--muted);border-left:3px solid var(--c,var(--line));padding-left:10px}
+
+/* Rotation */
+td .cell{display:inline-grid;gap:2px;border-left:4px solid var(--c);padding-left:8px}
+td .cell b{font-family:var(--f-mono)}
+td .cell span{font-size:.85rem;color:var(--muted)}
+
+/* Mission */
+.picker{display:flex;flex-wrap:wrap;gap:18px;align-items:end}
+.seg{display:flex;gap:4px;flex-wrap:wrap}
+.seg button{border:1.5px solid var(--line);background:var(--paper);border-radius:8px;padding:8px 14px;cursor:pointer;font-family:var(--f-mono);font-weight:600}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.mission{background:var(--paper);border:1.5px solid var(--ink);border-radius:12px;overflow:hidden}
+.mhead{display:grid;grid-template-columns:1fr auto;gap:18px;align-items:center;padding:20px 22px;background:var(--c);color:#fff}
+.mhead .label{color:rgba(255,255,255,.85)}
+.mhead h2{color:#fff}
+.ring{--p:0;width:74px;height:74px;border-radius:50%;background:conic-gradient(var(--glow) calc(var(--p)*1%),rgba(255,255,255,.22) 0);display:grid;place-items:center}
+.ring span{width:56px;height:56px;border-radius:50%;background:var(--c);display:grid;place-items:center;font-family:var(--f-mono);font-weight:600;font-size:.85rem}
+.mbody{padding:22px;display:grid;gap:22px}
+.mcols{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:26px}
+@media (max-width:780px){.mcols{grid-template-columns:1fr}}
+.checks{display:grid;gap:8px}
+.checks label{display:grid;grid-template-columns:24px 1fr;gap:10px;align-items:start;padding:10px 12px;border:1.5px solid var(--line);border-radius:8px;cursor:pointer;transition:border-color .2s,background .2s}
+.checks input{width:20px;height:20px;accent-color:var(--c);margin:2px 0 0}
+.checks label:has(input:checked){border-color:var(--c);background:color-mix(in srgb,var(--c) 9%,var(--paper))}
+.checks label:has(input:checked) span{color:var(--muted);text-decoration:line-through;text-decoration-color:var(--c)}
+.callout{background:var(--soft);border-radius:8px;padding:14px 16px;display:grid;gap:6px}
+.callout.glow{background:color-mix(in srgb,var(--glow) 22%,var(--paper))}
+.callout.retour{background:color-mix(in srgb,var(--ok) 13%,var(--paper));border:1.5px solid var(--ok)}
+.variant{border:1.5px dashed var(--line);border-radius:8px;padding:14px;display:grid;gap:8px}
+.fname{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.fname code{font-family:var(--f-mono);background:var(--paper);border:1px solid var(--line);border-radius:6px;padding:6px 10px;font-size:.9rem;word-break:break-all}
+
+/* Formulaire */
+form.rendu{display:grid;gap:16px;border-top:2px solid var(--ink);padding-top:22px}
+.field{display:grid;gap:6px}
+.field>label,.field>.flabel{font-weight:700}
+.hint{font-size:.85rem;color:var(--muted)}
+input[type=text],textarea,select{width:100%;border:1.5px solid var(--line);border-radius:8px;padding:10px 12px;background:var(--bg)}
+textarea{min-height:96px;resize:vertical}
+.row3{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:14px}
+.radios{display:flex;flex-wrap:wrap;gap:8px}
+.radios label{display:flex;gap:6px;align-items:center;border:1.5px solid var(--line);border-radius:8px;padding:6px 12px;cursor:pointer}
+.radios label:has(input:checked){border-color:var(--ink);font-weight:700}
+.thumbs{display:flex;flex-wrap:wrap;gap:10px}
+.thumb{width:112px;display:grid;gap:4px;font-size:.75rem;color:var(--ink);text-decoration:none}
+.thumb img,.thumb .vid{width:112px;height:84px;object-fit:cover;border-radius:6px;border:1px solid var(--line);background:var(--soft);display:grid;place-items:center;font-family:var(--f-mono)}
+.thumb button{border:0;background:none;color:var(--err);cursor:pointer;padding:0;text-align:left;font-size:.75rem}
+.filebtn{display:inline-flex;gap:8px;align-items:center;border:1.5px dashed var(--muted);border-radius:8px;padding:10px 14px;cursor:pointer;font-weight:700;width:max-content;max-width:100%}
+.filebtn input{position:absolute;width:1px;height:1px;opacity:0}
+.btn{border:0;border-radius:8px;padding:11px 18px;font-weight:700;cursor:pointer;background:var(--ink);color:var(--bg)}
+.btn.glow{background:var(--glow);color:var(--glow-ink)}
+.btn.ghost{background:none;border:1.5px solid var(--line);color:var(--ink)}
+.btn.sm{padding:7px 12px;font-size:.88rem}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.status{font-size:.9rem;font-weight:700}
+.status.ok{color:var(--ok)} .status.err{color:var(--err)}
+.banner{border-radius:8px;padding:12px 14px;background:color-mix(in srgb,var(--glow) 20%,var(--paper));font-size:.92rem}
+
+/* Séance */
+.timeline{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border:1.5px solid var(--ink);border-radius:10px;overflow:hidden}
+.timeline div{padding:14px;border-right:1px solid var(--line);display:grid;gap:4px;align-content:start;background:var(--paper)}
+.timeline div:last-child{border-right:0}
+.timeline .t{font-family:var(--f-mono);font-weight:600}
+@media (max-width:640px){.timeline{grid-template-columns:1fr 1fr}.timeline div:nth-child(2){border-right:0}.timeline div:nth-child(-n+2){border-bottom:1px solid var(--line)}}
+
+/* Quiz */
+.q{display:grid;gap:8px;padding:14px 0;border-bottom:1px solid var(--line)}
+.q .opts{display:flex;flex-wrap:wrap;gap:8px}
+.q .opts button{border:1.5px solid var(--line);background:var(--paper);border-radius:8px;padding:7px 12px;cursor:pointer;text-align:left}
+.q .opts button.good{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 14%,var(--paper))}
+.q .opts button.bad{border-color:var(--err);background:color-mix(in srgb,var(--err) 12%,var(--paper))}
+
+/* Prof */
+.rcard{background:var(--paper);border:1px solid var(--line);border-left:6px solid var(--c);border-radius:8px;padding:16px;display:grid;gap:10px}
+.rcard dl{margin:0;display:grid;gap:8px}
+.rcard dt{font-weight:700;font-size:.9rem}
+.rcard dd{margin:0;white-space:pre-wrap}
+.empty{border:1.5px dashed var(--line);border-radius:10px;padding:22px;color:var(--muted);text-align:center}
+
+/* Blocs d'outils dans la mission */
+.tool{border:1.5px solid var(--c);border-radius:12px;overflow:hidden}
+.tool-h{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;align-items:center;padding:12px 16px;background:color-mix(in srgb,var(--c) 12%,var(--paper));border-bottom:1px solid var(--line)}
+.tool-h h3{font-size:1.1rem}
+.tool-b{padding:16px;display:grid;gap:14px}
+.part{font-family:var(--f-mono);font-size:.72rem;font-weight:600;background:var(--c);color:#fff;border-radius:4px;padding:2px 8px;letter-spacing:.06em}
+/* tableau d'inventaire */
+.inv{min-width:860px;font-size:.9rem}
+.inv th,.inv td{padding:6px;border-bottom:1px solid var(--line)}
+.inv input,.inv select{width:100%;border:1px solid var(--line);border-radius:6px;padding:6px 7px;background:var(--bg);font-size:.9rem}
+.inv input[type=number]{text-align:right;font-variant-numeric:tabular-nums}
+.inv td.calc{font-family:var(--f-mono);font-weight:600;text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.inv td.calc.neg{color:var(--err)} .inv td.calc.pos{color:var(--p4)} .inv td.calc.zero{color:var(--ok)}
+.inv .del{border:0;background:none;color:var(--muted);cursor:pointer;font-size:1.1rem}
+.inv tfoot td{font-weight:700;border-top:2px solid var(--ink);border-bottom:0}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,140px),1fr));gap:10px}
+.kpi{background:var(--soft);border-radius:8px;padding:10px 12px;display:grid;gap:2px}
+.kpi b{font-family:var(--f-mono);font-size:1.25rem;font-variant-numeric:tabular-nums}
+/* documents commerciaux */
+.docs{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,380px),1fr));gap:14px}
+.doc{background:var(--paper);border:1px solid var(--line);border-radius:6px;padding:14px;display:grid;gap:10px;font-size:.88rem;box-shadow:0 1px 0 var(--line),0 6px 0 -3px var(--soft)}
+.doc-h{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;border-bottom:2px solid var(--ink);padding-bottom:8px}
+.doc-h b{font-family:var(--f-display);font-size:1.05rem}
+.doc table{min-width:0;font-size:.85rem}
+.doc th,.doc td{padding:5px 6px}
+.doc td.n{text-align:right;font-variant-numeric:tabular-nums;font-family:var(--f-mono)}
+.colis{border:2px dashed var(--c);border-radius:10px;padding:14px;display:grid;gap:10px;background:color-mix(in srgb,var(--c) 6%,var(--paper))}
+.colis ul{margin:0;padding-left:1.2em;display:grid;gap:4px}
+.ctrl{min-width:760px;font-size:.9rem}
+.ctrl input,.ctrl select{width:100%;border:1px solid var(--line);border-radius:6px;padding:6px 7px;background:var(--bg);font-size:.9rem}
+.ctrl td.mark{font-weight:700;width:28px;text-align:center}
+.ctrl td.mark.ok{color:var(--ok)} .ctrl td.mark.ko{color:var(--err)}
+/* créateur ILV/PLV */
+.creator{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:18px}
+@media (max-width:780px){.creator{grid-template-columns:1fr}}
+.creator canvas{width:100%;height:auto;border:1px solid var(--line);border-radius:8px;background:#fff}
+.swatches{display:flex;gap:8px;flex-wrap:wrap}
+.swatches button{width:30px;height:30px;border-radius:50%;border:2px solid var(--line);cursor:pointer;padding:0}
+.swatches button[aria-pressed="true"]{outline:3px solid var(--ink);outline-offset:2px}
+.fiche{display:grid;grid-template-columns:minmax(0,220px) minmax(0,1fr);gap:18px;border:1.5px solid var(--ink);border-radius:10px;padding:16px;background:var(--paper)}
+@media (max-width:560px){.fiche{grid-template-columns:1fr}}
+.fiche-img{aspect-ratio:1;max-width:100%;border-radius:8px;background:var(--soft);display:grid;place-items:center;overflow:hidden;color:var(--muted)}
+.fiche-img img{width:100%;height:100%;object-fit:cover}
+.fiche-body{display:grid;gap:8px;align-content:start;min-width:0}
+.fiche-price{font-family:var(--f-display);font-weight:800;font-size:2rem;color:var(--p2);display:flex;align-items:baseline;gap:8px}
+.fiche-price small{font-family:var(--f-mono);font-size:.75rem;color:var(--muted)}
+.ilvplv{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:560px){.ilvplv{grid-template-columns:1fr}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<div class="hero">
+  <div class="wrap">
+    <div class="hero-top">
+      <div class="stack" style="gap:6px">
+        <div class="label">LB Shop · Magasin pédagogique · Seconde MRC · Novembre 2026</div>
+        <h1>Opération LB Shop</h1>
+        <p class="lede">Chaque mission validée allume une lumière de la façade. Quand les 16 sont allumées, le LB Shop est prêt pour l'automne et la fin d'année.</p>
+      </div>
+    </div>
+
+    <svg class="facade" viewBox="0 0 800 380" role="img" aria-labelledby="facade-t">
+      <title id="facade-t">Façade du LB Shop : une vitrine par pôle, une lumière par équipe</title>
+      <defs>
+        <filter id="neonGlow" x="-20%" y="-40%" width="140%" height="180%"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        <filter id="bulbGlow" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        <pattern id="bricks" width="40" height="20" patternUnits="userSpaceOnUse"><rect width="40" height="20" fill="var(--brick)"/><path d="M0 0H40M0 10H40M20 0V10M0 10V20M40 10V20" stroke="var(--brick2)" stroke-width="1.5"/></pattern>
+        <radialGradient id="g1"><stop offset="0" stop-color="var(--p1)" stop-opacity=".95"/><stop offset="1" stop-color="var(--p1)" stop-opacity=".15"/></radialGradient>
+        <radialGradient id="g2"><stop offset="0" stop-color="var(--p2)" stop-opacity=".95"/><stop offset="1" stop-color="var(--p2)" stop-opacity=".15"/></radialGradient>
+        <radialGradient id="g3"><stop offset="0" stop-color="var(--p3)" stop-opacity=".95"/><stop offset="1" stop-color="var(--p3)" stop-opacity=".15"/></radialGradient>
+        <radialGradient id="g4"><stop offset="0" stop-color="var(--p4)" stop-opacity=".95"/><stop offset="1" stop-color="var(--p4)" stop-opacity=".15"/></radialGradient>
+      </defs>
+      <rect x="20" y="20" width="760" height="350" rx="6" fill="url(#bricks)"/>
+      <rect x="20" y="20" width="760" height="350" rx="6" fill="none" stroke="var(--frame)" stroke-width="2"/>
+      <!-- enseigne -->
+      <rect x="230" y="34" width="340" height="74" rx="10" fill="var(--pane)" stroke="var(--frame)" stroke-width="2"/>
+      <g id="neon" text-anchor="middle"></g>
+      <!-- guirlande -->
+      <g class="garland" id="garland"></g>
+      <!-- store -->
+      <g id="awning"></g>
+      <!-- vitrines -->
+      <g id="panes"></g>
+      <!-- porte -->
+      <rect x="642" y="160" width="112" height="196" rx="4" fill="var(--pane)" stroke="var(--frame)" stroke-width="3"/>
+      <rect x="652" y="172" width="92" height="120" rx="3" fill="var(--night2)" id="doorglass"/>
+      <circle cx="734" cy="300" r="4" fill="var(--frame)"/>
+      <rect x="660" y="214" width="76" height="30" rx="4" fill="var(--paper)" id="doorsign" opacity=".9"/>
+      <text x="698" y="234" text-anchor="middle" font-size="13" font-weight="600" fill="var(--ink)" id="doortext">FERMÉ</text>
+      <rect x="20" y="356" width="760" height="14" fill="var(--frame)"/>
+    </svg>
+
+    <div class="actions"><span class="label">Façade du demi-groupe</span><div class="seg" id="seg-g-hero"></div></div>
+    <div class="hero-stats">
+      <div><div class="big"><span id="lit">0</span><span style="font-size:1.2rem;color:#B5A9CF"> / 16</span></div><div class="label">missions validées</div></div>
+      <div class="meter" style="flex:1;min-width:220px">
+        <div class="meterbar"><span id="meterfill" style="width:0%"></span></div>
+        <div class="legend"><span><i style="background:var(--glow)"></i>Validée par la responsable</span><span><i style="border:2px dashed var(--glow)"></i>Rendue, en attente</span><span><i style="background:var(--off)"></i>À faire</span></div>
+      </div>
+    </div>
+    <div class="cal" id="cal"></div>
+  </div>
+</div>
+
+<nav class="tabs" aria-label="Sections">
+  <div class="wrap tabrow" role="tablist">
+    <button class="tab" role="tab" data-tab="accueil" aria-selected="true">Le LB Shop</button>
+    <button class="tab" role="tab" data-tab="mission" aria-selected="false">Ma mission</button>
+    <button class="tab" role="tab" data-tab="poles" aria-selected="false">Référentiel</button>
+    <button class="tab" role="tab" data-tab="planning" aria-selected="false">Planning</button>
+    <button class="tab" role="tab" data-tab="classe" aria-selected="false">Révisions</button>
+    <button class="tab" role="tab" data-tab="prof" aria-selected="false" id="tab-prof" hidden>Espace responsable</button>
+  </div>
+</nav>
+
+<main class="wrap">
+
+<!-- ACCUEIL -->
+<section class="view" id="v-accueil">
+  <article class="memo">
+    <dl class="memo-head">
+      <dt>De</dt><dd>La responsable du LB Shop</dd>
+      <dt>À</dt><dd>Équipe de vente renfort · Seconde MRC</dd>
+      <dt>Objet</dt><dd>Votre mission de novembre : préparer le LB Shop pour l'automne et la fin d'année</dd>
+    </dl>
+    <div class="memo-body">
+      <div class="label">Note de service</div>
+      <h2>Bienvenue dans l'équipe du LB Shop</h2>
+      <p>Le LB Shop est le magasin du lycée. On y vend des vêtements femme et enfant, des jouets, des bijoux, des objets de décoration et des accessoires. Nos clients sont les élèves, les familles et le personnel de l'établissement.</p>
+      <p>Novembre est un mois décisif : dans quelques semaines, les clients viendront chercher leurs cadeaux de fin d'année. Or le magasin n'est pas prêt. La réserve est en désordre et nous ne savons plus exactement ce que nous avons en stock. Plusieurs produits n'ont pas de fiche, ce qui rend le conseil difficile. La vitrine d'Octobre Rose est encore en place alors que nous voulons une décoration spéciale automne pour novembre, et le magasin manque de mise en valeur.</p>
+      <p>Pour relever ce défi, je vous recrute comme <b>employés commerciaux en renfort</b> pendant tout le mois de novembre. Chaque demi-groupe est réparti en 4 équipes, avec le même parcours. À chaque séance, votre équipe prend en charge un pôle du magasin, puis passe au suivant. À la fin du mois, chacun de vous aura organisé la réserve, décrit un produit, mis le magasin en valeur et conseillé un client.</p>
+      <p>À la fin de chaque séance, vous me remettez votre production depuis l'onglet «&nbsp;Ma mission&nbsp;». Quand je la valide, une lumière s'allume sur la façade. Mon objectif&nbsp;: une façade entièrement éclairée le vendredi 27 novembre.</p>
+      <p class="sign">La responsable du LB Shop</p>
+    </div>
+    <div class="contract">
+      <div><span class="label">Poste</span><b>Employé·e commercial·e</b><span class="muted">en renfort saisonnier</span></div>
+      <div><span class="label">Durée</span><b>4 séances de 2 h</b><span class="muted">du 2 au 27 novembre</span></div>
+      <div><span class="label">Organisation</span><b>2 demi-groupes · 4 équipes</b><span class="muted">un pôle différent à chaque séance</span></div>
+      <div><span class="label">Règle d'image</span><b>Photos de produits</b><span class="muted">pas de visage sans autorisation</span></div>
+    </div>
+  </article>
+
+  <div class="stack">
+    <div class="label">Votre terrain de mission</div>
+    <h2>Les 4 pôles du LB Shop</h2>
+    <p class="muted" style="max-width:68ch">On commence par organiser le magasin, puis on apprend à vendre ce qu'il contient. À chaque séance, votre équipe travaille dans un pôle différent.</p>
+    <div class="grid2" id="poles"></div>
+  </div>
+
+  <div class="stack">
+    <div class="actions" style="justify-content:space-between"><h2>Les cartes de fidélité · <span class="gname">Groupe A</span></h2><span class="muted">Un tampon par pôle validé</span></div>
+    <div class="cards" id="cards"></div>
+  </div>
+
+  <div class="panel stack">
+    <div class="label">Les rôles dans l'équipe · ils changent à chaque séance</div>
+    <div class="grid4">
+      <div class="stack" style="gap:4px"><h4>Chef d'équipe</h4><p class="muted">Lit la mission, répartit le travail, envoie la production.</p></div>
+      <div class="stack" style="gap:4px"><h4>Photographe</h4><p class="muted">Photos de produits et avant/après, sans visage.</p></div>
+      <div class="stack" style="gap:4px"><h4>Rédacteur</h4><p class="muted">Remplit les fiches et les réponses.</p></div>
+      <div class="stack" style="gap:4px"><h4>Contrôleur qualité</h4><p class="muted">Surveille la sécurité, le temps et coche les étapes.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- MISSION -->
+<section class="view" id="v-mission" hidden>
+  <div class="panel stack">
+    <div class="label">Trouve ta mission</div>
+    <div class="picker">
+      <div class="stack" style="gap:6px"><span class="label">Mon demi-groupe</span><div class="seg" id="seg-g"></div></div>
+      <div class="stack" style="gap:6px"><span class="label">Mon équipe</span><div class="seg" id="seg-e"></div></div>
+      <div class="stack" style="gap:6px"><span class="label">Séance</span><div class="seg" id="seg-s"></div></div>
+    </div>
+  </div>
+  <div id="mission-out"></div>
+</section>
+
+<!-- POLES -->
+<section class="view" id="v-poles" hidden>
+  <div class="stack"><h2>Ancrage dans le référentiel</h2><p class="muted" style="max-width:68ch">Chaque pôle s'appuie sur les activités du référentiel du bac pro Métiers du commerce et de la vente, option A.</p></div>
+  <div class="panel stack">
+    <div class="label">Ancrage référentiel · Bac pro MCV option A</div>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Bloc / unité</th><th>Activité du RAP</th><th>Pôle</th></tr></thead>
+      <tbody>
+        <tr><td><b>U2 · Animer et gérer l'espace commercial</b></td><td>Assurer les opérations préalables à la vente : réceptionner et contrôler une livraison (bon de commande, bon de livraison, réserves), stocker, ranger, réaliser l'inventaire, suivre les stocks</td><td><span class="chip c" style="--c:var(--p1)">Pôle 1</span></td></tr>
+        <tr><td><b>U2 · Animer et gérer l'espace commercial</b></td><td>Rendre l'unité commerciale attractive et fonctionnelle : entretien, implantation, vitrine, ILV (étiquetage prix, signalétique de rayon), PLV</td><td><span class="chip c" style="--c:var(--p3)">Pôle 3</span></td></tr>
+        <tr><td><b>U2 · Animer et gérer l'espace commercial</b></td><td>Développer la clientèle : support promotionnel, thème commercial de l'automne</td><td><span class="chip c" style="--c:var(--p3)">Pôle 3</span></td></tr>
+        <tr><td><b>U31 · Conseil et vente</b></td><td>Préparer la vente : s'approprier les caractéristiques des produits, rechercher l'information, proposer un prix de vente (coefficient, TVA, concurrence)</td><td><span class="chip c" style="--c:var(--p2)">Pôle 2</span></td></tr>
+        <tr><td><b>U31 · Conseil et vente</b></td><td>Réaliser la vente dans un cadre omnicanal : accueil, découverte, argumentation, objections, conclusion</td><td><span class="chip c" style="--c:var(--p4)">Pôle 4</span></td></tr>
+      </tbody>
+    </table></div>
+  </div>
+</section>
+
+<!-- PLANNING -->
+<section class="view" id="v-planning" hidden>
+  <div class="panel stack">
+    <div class="label">Rotation · chaque équipe passe par les 4 pôles</div>
+    <h2>Qui fait quoi, à chaque séance</h2>
+    <div class="tablewrap"><table id="rotation"></table></div>
+    <p class="muted">Pôle 1 : une livraison fournisseur différente à chaque séance, et une zone de la réserve confiée à chaque équipe. Pôle 3 : séance 1 le concours vitrine (équipes 3 des deux demi-groupes), séance 2 l'espace alimentaire, séance 3 l'espace beauté, séance 4 l'espace produits d'entretien. Pôles 2 et 4 : chaque équipe travaille sur ses propres produits.</p>
+  </div>
+  <div class="stack">
+    <h2>Déroulé d'une séance de 2 h</h2>
+    <div class="timeline">
+      <div><span class="t">10 min</span><b>Briefing</b><span class="muted">Rôles, consignes, sécurité. Point sur la façade.</span></div>
+      <div><span class="t">85 min</span><b>Mission</b><span class="muted">Chaque équipe sur son pôle, la fiche ouverte sur téléphone ou tablette.</span></div>
+      <div><span class="t">10 min</span><b>Rendu</b><span class="muted">Production envoyée depuis la page, nom de fichier standard.</span></div>
+      <div><span class="t">15 min</span><b>Débrief</b><span class="muted">2 min par équipe, puis activité flash.</span></div>
+    </div>
+  </div>
+  <div class="grid2">
+    <div class="panel stack"><div class="label">Organisation</div><ul class="clean">
+      <li>Pôle 1 dans la réserve, pôle 3 à la vitrine et dans le magasin, pôles 2 et 4 en classe.</li>
+      <li>Votre présence compte surtout en réserve et à la vitrine (escabeau, produits d'entretien).</li>
+      <li>Matériel : étiquettes, marqueurs, cartons, scotch de masquage, produit vitres, chiffons, fond blanc pour les photos.</li>
+    </ul></div>
+    <div class="panel stack"><div class="label">Si l'envoi en ligne n'est pas possible</div><ul class="clean">
+      <li>Le bouton « Copier ma fiche » copie toute la production en texte.</li>
+      <li>Les élèves la déposent sur l'ENT avec le nom de fichier affiché, par exemple <code class="mono">Equipe2_Pole4_CAB</code>.</li>
+      <li>Vous validez ensuite la mission dans l'Espace responsable : la lumière s'allume.</li>
+    </ul></div>
+  </div>
+</section>
+
+<!-- CLASSE -->
+<section class="view" id="v-classe" hidden>
+  <div class="stack"><h2>Révisions</h2><p class="muted" style="max-width:68ch">Des quiz pour revoir les notions de chaque pôle, et des exercices de calcul qui changent à chaque clic. À faire en fin de séance, en autonomie ou en devoir.</p></div>
+  <div class="panel stack">
+    <div class="actions" style="justify-content:space-between"><div><div class="label">Quiz de révision</div><h3 id="qtitle">Quiz</h3></div><span class="mono" id="qscore">0 / 0</span></div>
+    <div class="seg" id="qthemes"></div>
+    <div id="quiz"></div>
+    <div class="actions"><button type="button" class="btn ghost sm" id="qreset">Recommencer ce quiz</button></div>
+  </div>
+  <div class="stack">
+    <div class="actions" style="justify-content:space-between"><h2>Exercices de calcul</h2><span class="chip" id="xscore">0 bonne réponse</span></div>
+    <div class="grid2" id="exos"></div>
+  </div>
+</section>
+
+<!-- PROF -->
+<section class="view" id="v-prof" hidden>
+  <div class="panel stack">
+    <div class="label">Valider les missions</div>
+    <h3>Cliquez sur un tampon pour allumer ou éteindre la lumière</h3>
+    <div class="seg" id="seg-g-prof"></div>
+    <div class="cards" id="cards-prof"></div>
+    <span class="status" id="valid-status"></span>
+  </div>
+  <div class="panel stack">
+    <div class="label">Concours vitrine d'automne · équipes 3</div>
+    <h3>Quel demi-groupe démonte la vitrine Octobre Rose ?</h3>
+    <p class="muted">Le premier à passer au pôle 3 en séance 1. L'autre équipe 3 étudie des vitrines d'automne à la place.</p>
+    <div class="seg" id="seg-demont"><button type="button" data-v="">Pas encore décidé</button><button type="button" data-v="A">Groupe A</button><button type="button" data-v="B">Groupe B</button></div>
+    <h3>Projet de vitrine retenu</h3>
+    <p class="muted">Les deux équipes 3 présentent leur projet. L'équipe retenue réalise la vitrine.</p>
+    <div class="seg" id="seg-retenu"><button type="button" data-v="">Pas encore choisi</button><button type="button" data-v="A">Projet du groupe A</button><button type="button" data-v="B">Projet du groupe B</button></div>
+    <span class="status" id="reglage-status"></span>
+  </div>
+  <div class="panel stack">
+    <div class="label">Productions reçues</div>
+    <div class="actions">
+      <select id="f-sea" aria-label="Filtrer par séance"><option value="">Toutes les séances</option><option>1</option><option>2</option><option>3</option><option>4</option></select>
+      <select id="f-grp" aria-label="Filtrer par demi-groupe"><option value="">Tous les demi-groupes</option><option>A</option><option>B</option></select>
+      <select id="f-eq" aria-label="Filtrer par équipe"><option value="">Toutes les équipes</option><option>1</option><option>2</option><option>3</option><option>4</option></select>
+    </div>
+    <div class="stack" id="rendus"><div class="empty">Les productions des élèves apparaîtront ici dès leur envoi.</div></div>
+  </div>
+</section>
+</main>
+
+<script>
+const POLES = {
+ 1:{nom:"Gestion du stock et de la réserve",court:"Stock",verbe:"Organiser et contrôler",lieu:"Réserve",c:"var(--p1)",fichier:"Inventaire",
+   intro:"Un colis fournisseur vient d'arriver. Vous contrôlez d'abord la livraison, puis vous faites l'inventaire de la zone de la réserve que la responsable vous confie (déco, vêtements, jouets…) et vous la rangez.",
+   activites:["Partie A · Lire le bon de commande : qu'a commandé le LB Shop, en quelle quantité, à quel prix ?","Partie A · Comparer le bon de livraison au bon de commande, ligne par ligne.","Partie A · Ouvrir le colis et compter ce qui a vraiment été reçu.","Partie A · Remplir la grille de contrôle, rédiger les réserves et prendre la décision de réception.","Partie B · Avant de toucher à quoi que ce soit, photographier votre zone de la réserve : une vue d'ensemble et un détail du désordre. Ajouter les photos à la production.","Partie B · Trier les produits de votre zone (type, taille, couleur).","Partie B · Compter chaque article et remplir le tableau d'inventaire vierge.","Partie B · Repérer les articles abîmés, mal rangés ou sans étiquette.","Partie B · Ranger la zone (lourd en bas, fragile à hauteur des yeux, allée libre) et l'étiqueter."],
+   production:"Grille de contrôle de réception, tableau d'inventaire, anomalies relevées et proposition de rangement.",
+   criteres:["Chaque écart de livraison est repéré et nommé","Les réserves sont précises (référence, quantité, problème)","Chaque article compté apparaît dans le tableau d'inventaire","La zone est rangée et étiquetée"],
+   rap:"U2 · Assurer les opérations préalables à la vente : réception, stockage, suivi des stocks",
+   questions:[{id:"q2",l:"Anomalies relevées dans la réserve (abîmé, mal rangé, sans étiquette, difficile à identifier)"},{id:"q3",l:"Votre proposition de rangement et ce que vous avez rangé"}],
+   photos:"Photos de la zone avant et après rangement, photo du colis ouvert"},
+ 2:{nom:"Connaissance, fiche produit et prix",court:"Fiche produit",verbe:"Identifier, décrire, fixer un prix",lieu:"Magasin et classe",c:"var(--p2)",fichier:"FicheProduit",
+   intro:"Le LB Shop veut une fiche pour chaque produit, en magasin et en ligne. Vous choisissez un article que personne n'a encore décrit, vous le photographiez, vous le décrivez comme un professionnel et vous proposez son prix de vente.",
+   activites:[
+    "Partie A · 20 min · Choisir dans le magasin un article qui n'a pas encore de fiche (vérifier auprès de la responsable). Noter sa famille et son emplacement.",
+    "Partie A · Préparer l'article pour la photo : le nettoyer, le défroisser, cacher les étiquettes de prix.",
+    "Partie A · Prendre 3 photos autorisées : l'article entier sur fond neutre, un détail (matière, finition, étiquette), l'article en situation (porté, posé dans un décor d'automne). Lumière du jour, pas de flash, article centré.",
+    "Partie A · Choisir la meilleure photo et l'ajouter à la production.",
+    "Partie B · 30 min · Rédiger la désignation précise : type + matière + couleur + détail + taille. Exemple : « Pull col roulé en maille côtelée, beige, taille M ».",
+    "Partie B · Relever les caractéristiques sur l'étiquette ou l'emballage : matière ou composition, dimensions ou taille, couleur, poids ou contenance, entretien, origine, marque, fonctions.",
+    "Partie B · Définir le client cible (qui ? pour quel usage ? pour quelle occasion ?) et 3 atouts du produit.",
+    "Partie B · Rédiger la description commerciale de 3 à 5 phrases : une accroche, les avantages pour le client, un usage, un conseil d'entretien. Utiliser un vocabulaire valorisant.",
+    "Partie C · 25 min · Noter le prix d'achat HT donné par la responsable (ou celui de la facture fournisseur).",
+    "Partie C · Calculer le prix de vente avec le calculateur : coefficient multiplicateur, prix HT, TVA, prix TTC, marge.",
+    "Partie C · Relever 2 ou 3 prix de produits comparables chez des concurrents (sites, catalogues, magasins).",
+    "Partie C · Proposer le prix final (prix psychologique, par exemple 12,90 €) et le justifier : cible, concurrence, marge.",
+    "Partie D · 10 min · Vérifier l'aperçu de la fiche produit, puis la faire relire par un autre membre de l'équipe (orthographe, exactitude)."],
+   production:"Fiche produit complète : photo, désignation, caractéristiques, description commerciale, client cible, prix de vente calculé et justifié.",
+   criteres:["La désignation est précise","Au moins 5 caractéristiques exactes","La description donne envie et parle au client","Le prix est calculé juste et justifié par la marge et la concurrence"],
+   rap:"U31 · Préparer la vente, s'approprier les produits · Mettre à jour l'information produit",
+   questions:[{id:"q1",l:"Désignation précise, famille et emplacement de l'article"},{id:"q2",l:"Caractéristiques techniques (une par ligne)"},{id:"q3",l:"Description commerciale (3 à 5 phrases)"},{id:"q4",l:"Client cible et 3 atouts du produit"},{id:"q5",l:"Justification du prix de vente proposé"}],
+   photos:"Les 3 photos autorisées du produit (entier, détail, en situation)"},
+ 3:{nom:"Merchandising, linéaire et attractivité",court:"Merchandising",verbe:"Implanter et valoriser",lieu:"Magasin et vitrine",c:"var(--p3)",fichier:"Merchandising",
+   intro:"Vous rendez le LB Shop plus attractif. Partie A : chaque équipe aménage un espace différent (le projet de vitrine d'automne, en concours entre les deux équipes 3, l'espace alimentaire, l'espace beauté ou l'espace produits d'entretien) en calculant son linéaire. Partie B : vous créez l'ILV et la PLV de cet espace et vous les installez.",
+   activites:[],
+   production:"Espace aménagé (calcul du linéaire et plan d'implantation, ou vitrine), 2 ILV et 1 PLV créées et affichées, photos avant/après si autorisées.",
+   criteres:["Les calculs de linéaire sont justes et justifiés","L'implantation respecte les règles (niveaux, blocs, produits lourds en bas)","L'étiquette prix porte toutes les mentions obligatoires","La PLV a une accroche lisible à 3 mètres"],
+   rap:"U2 · Rendre l'unité commerciale attractive et fonctionnelle · Développer la clientèle",
+   questions:[{id:"q1",l:"Partie A · Aménagement : ce que vous avez réalisé et les règles d'implantation appliquées"},{id:"q2",l:"Partie B · Les 2 ILV créées : contenu et emplacement dans le magasin"},{id:"q3",l:"Partie B · La PLV créée : format, accroche, emplacement et objectif"}],
+   photos:"Photos de l'espace avant/après, du plan d'implantation, de l'ILV et de la PLV installées (si autorisées)"},
+ 4:{nom:"Fiche produit, argumentation et vente",court:"Vente CAB",verbe:"Décrire, convaincre et conseiller",lieu:"Magasin et classe",c:"var(--p4)",fichier:"CAB",
+   intro:"Un vendeur ne peut bien conseiller que s'il connaît parfaitement son produit. Vous réalisez d'abord la fiche d'un nouveau produit, puis vous construisez son argumentaire CAB et vous le vendez dans une simulation, en réinvestissant les étapes du Rap de la vente.",
+   activites:[
+    "Partie A · 30 min · Choisir dans le magasin un nouveau produit, différent de celui de votre fiche du pôle 2 et qui n'a pas encore de fiche.",
+    "Partie A · Le photographier sur fond neutre, à la lumière du jour, et ajouter la photo à la production.",
+    "Partie A · Rédiger la désignation précise : type + matière + couleur + détail + taille.",
+    "Partie A · Relever au moins 5 caractéristiques sur l'étiquette ou l'emballage (matière, dimensions, couleur, contenance, entretien, fonctions…).",
+    "Partie A · Noter le prix de vente TTC et rédiger une description commerciale de 3 à 5 phrases.",
+    "Partie A · Vérifier l'aperçu de la fiche produit ci-dessous.",
+    "Partie B · 25 min · Remplir le tableau CAB à partir de votre fiche : Caractéristique → Avantage → Bénéfice pour le client (au moins 3 lignes).",
+    "Partie B · Écrire une accroche commerciale d'une ou deux phrases.",
+    "Partie B · Prévoir 2 objections probables (« c'est trop cher », « ça va s'abîmer »…) et votre réponse à chacune.",
+    "Partie C · 30 min · Écrire le dialogue vendeur-client en suivant les étapes de la vente : accueil, découverte des besoins, argumentation, réponse à l'objection, conclusion, prise de congé.",
+    "Partie C · Jouer la simulation : un vendeur, un client, deux observateurs qui notent les étapes réussies. Puis inverser les rôles.",
+    "Partie C · Enregistrer la simulation en audio ou en vidéo si c'est possible."],
+   production:"Fiche produit d'un nouveau produit, fiche CAB, objections et réponses, dialogue vendeur-client, enregistrement audio ou vidéo si possible.",
+   criteres:["La fiche produit est complète et exacte (désignation, 5 caractéristiques, prix, description)","Chaque caractéristique mène à un vrai bénéfice client","Toutes les étapes de la vente apparaissent","Les objections sont traitées"],
+   rap:"U31 · Préparer la vente, s'approprier les produits · Réaliser la vente dans un cadre omnicanal",
+   questions:[{id:"q1",l:"Partie A · Désignation précise du nouveau produit, famille et emplacement"},{id:"q2",l:"Partie A · Caractéristiques techniques (une par ligne, au moins 5)"},{id:"px4",l:"Partie A · Prix de vente TTC (€)"},{id:"q3",l:"Partie A · Description commerciale (3 à 5 phrases)"},{id:"q4",l:"Partie B · Tableau CAB (au moins 3 lignes : caractéristique → avantage → bénéfice)"},{id:"q5",l:"Partie B · Accroche commerciale et réponses aux 2 objections"},{id:"q6",l:"Partie C · Le dialogue vendeur-client, étape par étape"}],
+   photos:"Photo du produit (fond neutre) et enregistrement audio ou vidéo de la simulation (si possible)"}
+};
+const FAMILLES = {1:"Vêtements femme",2:"Vêtements enfant",3:"Jouets",4:"Bijoux, décoration et accessoires"};
+const P3 = {
+ 1:{vitrine:true,zone:"la vitrine",t:"Concours vitrine d'automne"},
+ 2:{lin:true,zone:"l'espace alimentaire",t:"Espace alimentaire : linéaire au sol et développé",familles:["Épicerie sucrée","Épicerie salée","Boissons","Confiserie de Noël","Autre (à préciser)"]},
+ 3:{lin:true,zone:"l'espace beauté",t:"Espace beauté : linéaire au sol et développé",familles:["Colorations noir et brun (tons 1 à 4)","Colorations châtain (tons 5 et 6)","Colorations blond (tons 7 à 10)","Colorations rouge, cuivré et fantaisie","Soins couleur (shampooings, masques)","Autre (à préciser)"],conseil:"L'espace beauté est surtout composé de colorations. On les classe par teinte, du plus foncé au plus clair (tons 1 à 10), en blocs verticaux : le client trouve sa nuance d'un seul regard. Les teintes les plus vendues vont à hauteur des yeux, les soins couleur à côté des colorations."},
+ 4:{lin:true,zone:"l'espace produits d'entretien",t:"Espace entretien : linéaire au sol et développé",familles:["Lessives","Vaisselle","Nettoyants ménagers","Accessoires (éponges, gants)","Autre (à préciser)"]}
+};
+const VIT = {
+ obs:"Partie A · Observer la vitrine Octobre Rose, ou ses photos si elle est déjà démontée : message, couleurs, produits, point focal. Noter ce qui fonctionnait et ce que vous changeriez.",
+ demont:["Partie A · Démonter avec soin : décrocher la décoration, retirer les produits exposés et les rendre à la réserve.",
+  "Partie A · Trier le matériel (à garder, à jeter, à rendre), étiqueter ce qui est gardé et le ranger en réserve.",
+  "Partie A · Nettoyer avec des gants : vitre intérieure, sol de la vitrine, supports et présentoirs.",
+  "Partie A · Mesurer la vitrine (largeur, hauteur, profondeur), la photographier vide et partager les mesures avec l'autre demi-groupe."],
+ etude:["Partie A · Étudier 3 vitrines d'automne (commerces du quartier ou photos en ligne) avec la grille : thème, couleurs, point focal, produits, accroche.",
+  "Partie A · Relever 3 idées à réutiliser au LB Shop et 1 erreur à éviter.",
+  "Partie A · Récupérer les mesures de la vitrine (relevées par l'autre demi-groupe ou données par la responsable)."],
+ projet:["Partie A · Rédiger le brief créatif : client visé, message principal, ambiance, 3 couleurs maximum.",
+  "Partie A · Créer une planche d'ambiance : 6 à 8 images, couleurs et matières d'automne (bois, laine, feuilles, cuivre…), en photos ou en collage.",
+  "Partie A · Choisir 5 à 8 articles du LB Shop qui vont avec l'automne et noter leur désignation et leur prix.",
+  "Partie A · Dessiner la vitrine de face, à l'échelle (1 carreau = 10 cm), en couleur : point focal, composition en triangle, hauteurs variées, produits par 3, place des étiquettes prix et de la PLV.",
+  "Partie A · Dessiner la vue de dessus : où se placent les supports, les produits et la décoration dans la profondeur.",
+  "Partie A · Lister le matériel et estimer le budget : réemploi, fait main, à acheter (avec un prix estimé).",
+  "Partie A · Écrire l'ordre de montage en 5 étapes, du fond vers l'avant.",
+  "Partie A · Préparer une présentation de 2 minutes de votre projet pour le jury (la responsable)."]
+};
+const JURY=["Respect du thème automne","Règles de merchandising appliquées","Produits du LB Shop bien choisis","Faisabilité et budget (réemploi)","Qualité du dessin et de la présentation"];
+const LIN_STEPS = z=>[`Partie A · Mesurer le mobilier de ${z} : nombre d'éléments, longueur d'un élément, nombre de niveaux (tablettes).`,
+ "Partie A · Calculer le linéaire au sol et le linéaire développé avec le calculateur.",
+ "Partie A · Répartir le linéaire développé entre les familles de produits et calculer le nombre de facings.",
+ "Partie A · Implanter : produits lourds et volumineux en bas, produits d'appel à hauteur des yeux, une famille par bloc vertical.",
+ "Partie A · Dessiner le plan d'implantation (planogramme) et aménager l'espace."];
+const ILVPLV = f=>[`Partie B · Faire le tour de ${f} : quelle information manque au client (prix, nom du rayon, contenance, composition) ?`,
+ "Partie B · Créer 2 ILV avec le créateur ci-dessous : une étiquette prix conforme et un panneau de rayon.",
+ "Partie B · Créer 1 PLV aux couleurs de l'automne : affiche, stop-rayon ou chevalet, avec une accroche.",
+ "Partie B · Imprimer ou recopier, installer l'ILV et la PLV dans le magasin, puis prendre une photo."];
+
+/* Contrôle de réception : un colis fournisseur par séance (pôle 1) */
+const RECEP = {
+ 1:{fournisseur:"Mode & Co Distribution",bc:"BC-2026-1101",bcDate:"20/10/2026",bl:"BL-88412",blDate:"02/11/2026",lignes:[
+  {ref:"VF-101",des:"Pull col roulé maille côtelée beige, T.M",cmd:6,pu:14.5,liv:6,colis:"6 pulls col roulé beige, taille M",cle:"Conforme"},
+  {ref:"VF-102",des:"Écharpe en laine bordeaux",cmd:8,pu:6.9,liv:8,colis:"7 écharpes bordeaux",cle:"Manquant"},
+  {ref:"VF-103",des:"Chemisier fluide imprimé, T.S",cmd:4,pu:11,liv:4,colis:"4 chemisiers imprimés étiquetés taille L",cle:"Erreur de référence"},
+  {ref:"VF-104",des:"Gants tactiles noirs",cmd:10,pu:3.5,liv:6,reliquat:4,colis:"6 paires de gants noirs",cle:"Livraison partielle"},
+  {ref:"VF-105",des:"Bonnet à pompon gris",cmd:6,pu:4.2,liv:6,colis:"6 bonnets gris, dont 1 avec une grosse tache",cle:"Abîmé"}]},
+ 2:{fournisseur:"P'tits Loups Textile",bc:"BC-2026-1102",bcDate:"27/10/2026",bl:"BL-20577",blDate:"09/11/2026",lignes:[
+  {ref:"VE-201",des:"Pyjama polaire étoiles, 4 ans",cmd:5,pu:9.8,liv:5,colis:"5 pyjamas polaires étoiles, 4 ans",cle:"Conforme"},
+  {ref:"VE-202",des:"Lot de 3 bodies manches longues, 12 mois",cmd:6,pu:8.5,liv:6,colis:"6 lots, dont 1 emballage déchiré avec un body troué",cle:"Abîmé"},
+  {ref:"VE-203",des:"Doudoune légère marine, 8 ans",cmd:4,pu:22,liv:4,colis:"3 doudounes marine, 8 ans",cle:"Manquant"},
+  {ref:"VE-204",des:"Lot de 5 paires de chaussettes antidérapantes, 23-26",cmd:10,pu:4.9,liv:10,colis:"10 lots de chaussettes 23-26",cle:"Conforme"},
+  {ref:"VE-299",des:"Bonnet licorne rose",cmd:0,pu:null,liv:3,colis:"3 bonnets licorne roses",cle:"Non commandé"}]},
+ 3:{fournisseur:"Ludi'Jouets",bc:"BC-2026-1103",bcDate:"03/11/2026",bl:"BL-L-3390",blDate:"16/11/2026",lignes:[
+  {ref:"JO-301",des:"Puzzle 100 pièces « Animaux de la ferme »",cmd:6,pu:5.9,liv:6,colis:"6 puzzles animaux de la ferme",cle:"Conforme"},
+  {ref:"JO-302",des:"Peluche renard 30 cm",cmd:8,pu:7.2,liv:5,reliquat:3,colis:"5 peluches renard",cle:"Livraison partielle"},
+  {ref:"JO-303",des:"Jeu de société « La course des lutins »",cmd:4,pu:12.5,liv:4,colis:"4 boîtes, dont 1 boîte écrasée",cle:"Abîmé"},
+  {ref:"JO-304",des:"Kit perles à repasser 2 000 pièces",cmd:5,pu:6.4,liv:5,colis:"5 kits perles à repasser 1 000 pièces",cle:"Erreur de référence"},
+  {ref:"JO-305",des:"Toupie lumineuse",cmd:12,pu:2.1,liv:12,colis:"11 toupies lumineuses",cle:"Manquant"}]},
+ 4:{fournisseur:"Éclat Déco & Bijoux",bc:"BC-2026-1104",bcDate:"10/11/2026",bl:"BL-ED-1209",blDate:"23/11/2026",lignes:[
+  {ref:"BI-401",des:"Collier chaîne fine dorée, pendentif étoile",cmd:10,pu:4.8,liv:10,colis:"10 colliers étoile dorés",cle:"Conforme"},
+  {ref:"BI-402",des:"Créoles argentées (la paire)",cmd:12,pu:3.2,liv:12,colis:"12 paires, dont 1 paire au fermoir cassé",cle:"Abîmé"},
+  {ref:"DE-403",des:"Bougie parfumée cannelle 180 g",cmd:8,pu:5.5,liv:8,colis:"8 bougies parfumées vanille 180 g",cle:"Erreur de référence"},
+  {ref:"DE-404",des:"Guirlande lumineuse LED 3 m",cmd:6,pu:6.9,liv:6,colis:"4 guirlandes LED 3 m",cle:"Manquant"},
+  {ref:"DE-499",des:"Boule de Noël en verre peint",cmd:0,pu:null,liv:12,colis:"12 boules de Noël en verre peint",cle:"Non commandé"}]}
+};
+const STATUTS=["","Conforme","Manquant","Livraison partielle","Abîmé","Erreur de référence","Non commandé"];
+const FAM_CODE={1:"VF",2:"VE",3:"JO",4:"BI"};
+const eur=n=>(Math.round(n*100)/100).toLocaleString("fr-FR",{minimumFractionDigits:2,maximumFractionDigits:2})+" €";
+const QUIZZES = {
+ stock:{t:"Réception et stock",q:[
+  {q:"Le document qui indique ce que le LB Shop a demandé au fournisseur, c'est…",o:["Le bon de livraison","Le bon de commande","La facture"],r:1,e:"Le bon de commande est rédigé par l'acheteur avant la livraison."},
+  {q:"Le document qui accompagne le colis et liste ce qui a été envoyé, c'est…",o:["Le bon de livraison","Le bon de commande","Le ticket de caisse"],r:0,e:"On le compare au bon de commande et au contenu du colis."},
+  {q:"Il manque un article dans le colis. Que fait-on ?",o:["On signe sans rien dire","On écrit une réserve précise sur le bon de livraison","On jette le colis"],r:1,e:"La réserve précise la référence, la quantité et le problème."},
+  {q:"Le fournisseur livre 6 articles sur 10 et note « reliquat 4 ». C'est…",o:["Une erreur de référence","Une livraison partielle","Un article non commandé"],r:1,e:"Le reliquat sera livré plus tard."},
+  {q:"Compter physiquement tous les articles à une date donnée, c'est…",o:["Un réassort","Un inventaire","Une démarque"],r:1,e:"L'inventaire donne le stock réel."},
+  {q:"Un article abîmé, volé ou perdu fait partie de…",o:["La démarque","Le surstock","La marge"],r:0,e:"La démarque, ce sont les articles qu'on ne pourra pas vendre normalement."},
+  {q:"Dans la réserve, les articles lourds se rangent…",o:["En hauteur","À hauteur des yeux","En bas"],r:2,e:"En bas : moins de risque de chute et de blessure."},
+  {q:"FIFO (premier entré, premier sorti) veut dire qu'on vend d'abord…",o:["Les articles les plus chers","Les articles arrivés en premier","Les articles du haut"],r:1,e:"On place les anciens articles devant."}]},
+ prix:{t:"Prix, TVA et marge",q:[
+  {q:"Le prix TTC, c'est le prix…",o:["Hors taxes","Toutes taxes comprises","Avec remise"],r:1,e:"C'est le prix payé par le client."},
+  {q:"Pour passer du HT au TTC avec une TVA à 20 %, on multiplie par…",o:["0,20","1,20","20"],r:1,e:"TTC = HT × (1 + 0,20) = HT × 1,20."},
+  {q:"Pour passer du TTC au HT avec une TVA à 20 %, on…",o:["Divise par 1,20","Multiplie par 0,80","Soustrait 20 €"],r:0,e:"HT = TTC ÷ 1,20."},
+  {q:"Le taux de TVA des produits alimentaires courants est de…",o:["20 %","10 %","5,5 %"],r:2,e:"5,5 % pour la plupart des produits alimentaires."},
+  {q:"Prix de vente HT = prix d'achat HT × …",o:["Le coefficient multiplicateur","La TVA","La marge"],r:0,e:"Le coefficient permet de passer du prix d'achat au prix de vente."},
+  {q:"La marge brute se calcule ainsi :",o:["PV TTC − PA HT","PV HT − PA HT","PA HT − PV HT"],r:1,e:"On compare toujours des montants HT."},
+  {q:"Un prix comme 9,90 € plutôt que 10 € s'appelle…",o:["Un prix psychologique","Un prix de gros","Un prix barré"],r:0,e:"Le client a l'impression de payer moins de 10 €."},
+  {q:"Vendre en dessous du prix d'achat, c'est…",o:["Faire une marge","Vendre à perte","Faire une promotion obligatoire"],r:1,e:"La marge devient négative."}]},
+ merch:{t:"Merchandising et linéaire",q:[
+  {q:"Le linéaire au sol se calcule ainsi :",o:["Nombre d'éléments × longueur d'un élément","Longueur × nombre de niveaux","Hauteur × largeur"],r:0,e:"C'est la longueur du meuble posée au sol."},
+  {q:"Le linéaire développé se calcule ainsi :",o:["Linéaire au sol × nombre de niveaux","Linéaire au sol ÷ 2","Nombre de produits × prix"],r:0,e:"C'est la longueur totale des tablettes."},
+  {q:"Un meuble de 2 m avec 4 niveaux a un linéaire développé de…",o:["2 m","6 m","8 m"],r:2,e:"2 × 4 = 8 m."},
+  {q:"Les produits d'appel se placent de préférence…",o:["Au niveau du sol","À hauteur des yeux","Au chapeau"],r:1,e:"C'est le niveau le plus vu par le client."},
+  {q:"Un facing, c'est…",o:["Un produit visible de face sur la tablette","Une promotion","Une étiquette prix"],r:0,e:"Plus un produit a de facings, plus il est visible."},
+  {q:"Une étiquette prix et un panneau de rayon sont de…",o:["La PLV","L'ILV","La démarque"],r:1,e:"L'ILV informe et oriente le client."},
+  {q:"Une affiche de promotion ou un stop-rayon sont de…",o:["La PLV","L'ILV","Un inventaire"],r:0,e:"La PLV attire et pousse à l'achat."},
+  {q:"Dans une vitrine, l'endroit où l'œil se pose en premier s'appelle…",o:["Le point focal","Le linéaire","Le facing"],r:0,e:"On y place l'élément le plus fort."}]},
+ vente:{t:"Fiche produit et vente",q:[
+  {q:"Quelle désignation est la plus précise ?",o:["Un pull","Un pull beige","Pull col roulé en maille côtelée, beige, taille M"],r:2,e:"Type + matière + couleur + détail + taille."},
+  {q:"« Ce pull est en laine mérinos » est…",o:["Une caractéristique","Un avantage","Un bénéfice"],r:0,e:"C'est un fait technique sur le produit."},
+  {q:"« Vous aurez chaud sans vous sentir serré » est…",o:["Une caractéristique","Un bénéfice pour le client","Une objection"],r:1,e:"Le bénéfice répond au besoin du client."},
+  {q:"Dans la méthode CAB, le B signifie…",o:["Besoin","Bénéfice","Budget"],r:1,e:"Caractéristique → Avantage → Bénéfice."},
+  {q:"Quelle étape vient juste après l'accueil du client ?",o:["La conclusion","La découverte des besoins","L'argumentation"],r:1,e:"On écoute et on questionne avant d'argumenter."},
+  {q:"« C'est trop cher » est…",o:["Une objection","Une conclusion","Une caractéristique"],r:0,e:"On y répond calmement avec un argument adapté."},
+  {q:"Une bonne photo produit se prend…",o:["Avec flash, de loin","Sur fond neutre, à la lumière du jour","Dans le désordre de la réserve"],r:1,e:"Le produit doit être net, centré et bien éclairé."},
+  {q:"La cible d'un produit, c'est…",o:["Son prix","Le client à qui il s'adresse","Son fournisseur"],r:1,e:"On écrit la description pour ce client."}]}
+};
+
+const WEEKS = [{d:"2 – 6 nov."},{d:"9 – 13 nov.",n:"11 nov. férié"},{d:"16 – 20 nov."},{d:"23 – 27 nov."}];
+const WEEK_START = [new Date(2026,10,2),new Date(2026,10,9),new Date(2026,10,16),new Date(2026,10,23)];
+
+/* ---------- état ---------- */
+const ls = {get(k,d){try{const v=localStorage.getItem(k);return v===null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+const $ = s=>document.querySelector(s);
+const esc = s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+let G = ls.get("lb_g","A"), E = ls.get("lb_e",1), S = ls.get("lb_s",currentSeance()||1);
+let reglages={demontage:"",retenu:""};
+let vitrineMode="indecis", valide={}, rendusSignal={}, myDoc=null;
+let db=null, assets=null, user=null, uid=null, isProf=false;
+
+function currentSeance(){const t=new Date();for(let i=3;i>=0;i--){if(t>=WEEK_START[i])return i+1}return 0}
+function poleOf(e,s){return ((e-1)+(s-1))%4+1}
+function key(e,p,g){return (g||G)+"_E"+e+"_P"+p}
+function stateOf(e,p){const k=key(e,p);return valide[k]?"valide":(rendusSignal[k]?"rendu":"todo")}
+
+/* ---------- façade ---------- */
+(function buildFacade(){
+  const L="LB SHOP".split(""), xs=[268,316,0,388,436,484,532];
+  $("#neon").innerHTML=L.map((ch,i)=>ch===" "?"":`<text class="neon" data-i="${i}" x="${xs[i]}" y="92">${ch}</text>`).join("");
+  let g=""; for(let i=0;i<26;i++){const x=40+i*28.8, y=122+Math.sin(i*0.75)*4; g+=`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="4"/>`}
+  $("#garland").innerHTML=`<path d="M36 122 Q400 136 764 122" stroke="#5d4f7a" fill="none" stroke-width="1.5"/>`+g;
+  let a=""; for(let i=0;i<20;i++){a+=`<rect x="${30+i*37}" y="132" width="37" height="18" fill="${i%2?'var(--brick2)':'#4A3B66'}"/>`}
+  a+=`<path d="M30 150 ${Array.from({length:20},(_,i)=>`Q${48.5+i*37} 162 ${67+i*37} 150`).join(" ")}" fill="#4A3B66"/>`;
+  $("#awning").innerHTML=a;
+  let p=""; for(let i=1;i<=4;i++){const x=36+(i-1)*150;
+    p+=`<g data-pole="${i}">
+      <rect x="${x}" y="170" width="138" height="186" rx="4" fill="var(--pane)" stroke="var(--frame)" stroke-width="3"/>
+      <rect class="pane-glow" id="pg${i}" x="${x+6}" y="176" width="126" height="140" rx="2" fill="url(#g${i})" opacity="0"/>
+      <text x="${x+69}" y="200" text-anchor="middle" font-size="11" fill="#CFC6E2" letter-spacing="1.5">PÔLE ${i}</text>
+      <text x="${x+69}" y="218" text-anchor="middle" font-size="13" font-weight="600" fill="#fff">${POLES[i].court.toUpperCase()}</text>
+      <line x1="${x}" y1="322" x2="${x+138}" y2="322" stroke="var(--frame)" stroke-width="2"/>
+      ${[1,2,3,4].map(e=>`<circle class="bulb" id="b${e}_${i}" cx="${x+24+(e-1)*30}" cy="292" r="10"/><text x="${x+24+(e-1)*30}" y="341" text-anchor="middle" font-size="10" fill="#B5A9CF">E${e}</text>`).join("")}
+    </g>`}
+  $("#panes").innerHTML=p;
+})();
+
+function renderFacade(){
+  let n=0;
+  for(let p=1;p<=4;p++){let c=0;for(let e=1;e<=4;e++){const st=stateOf(e,p);const b=document.getElementById("b"+e+"_"+p);b.setAttribute("class","bulb "+(st==="todo"?"":st));if(st==="valide"){c++;n++}}
+    document.getElementById("pg"+p).setAttribute("opacity",(c/4*0.85).toFixed(2));}
+  const letters=[...document.querySelectorAll(".neon")], on=Math.round(n/16*letters.length);
+  letters.forEach((t,i)=>t.classList.toggle("on",i<on));
+  $("#garland").classList.toggle("on",n===16);
+  $("#lit").textContent=n; $("#meterfill").style.width=(n/16*100)+"%";
+  const open=n===16; $("#doortext").textContent=open?"OUVERT":(n>=8?"BIENTÔT":"FERMÉ");
+  $("#doorglass").setAttribute("fill",open?"var(--glow)":"var(--night2)"); $("#doorglass").setAttribute("opacity",open?".55":"1");
+}
+function renderCal(){
+  const t=new Date(), cur=currentSeance();
+  $("#cal").innerHTML=WEEKS.map((w,i)=>{
+    const start=WEEK_START[i], end=new Date(start.getTime()+5*864e5);
+    const f=t>=end?1:(t<start?0:(t-start)/(end-start));
+    return `<div class="week ${cur===i+1?"now":""}"><b>Séance ${i+1}</b><span>${w.d}${w.n?" · "+w.n:""}</span><div class="fill" style="transform:scaleX(${f.toFixed(2)})"></div></div>`}).join("");
+}
+
+/* ---------- cartes de fidélité ---------- */
+function cardHTML(e,prof){
+  let n=0;const stamps=[1,2,3,4].map(p=>{const st=stateOf(e,p);if(st==="valide")n++;
+    const inner=`P${p}`, cls=`stamp ${st==="todo"?"":st}`, t=`Pôle ${p} · ${POLES[p].court} : ${st==="valide"?"validé":st==="rendu"?"rendu, à valider":"à faire"}`;
+    return prof?`<button type="button" class="${cls}" style="--c:${POLES[p].c}" data-e="${e}" data-p="${p}" title="${t}" aria-label="${t}">${inner}</button>`:`<span class="${cls}" style="--c:${POLES[p].c}" title="${t}">${inner}</span>`}).join("");
+  return `<div class="loyal"><div class="loyal-top"><b>Équipe ${e}</b><span class="mono">${n}/4</span></div><div class="stamps">${stamps}</div><small>${n===4?"Carte complète, bravo !":"Pôle de la séance "+(currentSeance()||1)+" : "+POLES[poleOf(e,currentSeance()||1)].court}</small></div>`;
+}
+function renderCards(){
+  $("#cards").innerHTML=[1,2,3,4].map(e=>cardHTML(e,false)).join("");
+  if(isProf) $("#cards-prof").innerHTML=[1,2,3,4].map(e=>cardHTML(e,true)).join("");
+}
+$("#cards-prof").addEventListener("click",async ev=>{
+  const b=ev.target.closest("button.stamp"); if(!b||!db) return;
+  const k=key(+b.dataset.e,+b.dataset.p); const next={...valide}; if(next[k]) delete next[k]; else next[k]=true;
+  valide=next; renderAll();
+  try{await db.doc("etat/progression").set({valide:next}); $("#valid-status").textContent=""}
+  catch(err){$("#valid-status").textContent="Non enregistré ("+(err.code||"erreur")+")";$("#valid-status").className="status err"}
+});
+
+/* ---------- onglets ---------- */
+document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>showTab(b.dataset.tab)));
+function showTab(t){document.querySelectorAll(".tab").forEach(b=>b.setAttribute("aria-selected",b.dataset.tab===t));document.querySelectorAll("section.view").forEach(v=>v.hidden=v.id!=="v-"+t);ls.set("lb_tab",t)}
+
+/* ---------- pôles, rotation, activités, quiz ---------- */
+$("#poles").innerHTML=[1,2,3,4].map(p=>{const P=POLES[p];
+  const acts = p===3 ? [1,2,3,4].map(s=>`Séance ${s} : ${P3[s].t}`) : P.activites;
+  return `<article class="pole" style="--c:${P.c}"><div class="pole-h"><span class="n">PÔLE ${p} · ${esc(P.lieu.toUpperCase())}</span><h3>${esc(P.nom)}</h3><em>${esc(P.verbe)}</em></div>
+  <div class="pole-b"><p>${esc(P.intro)}</p><ul class="clean">${acts.map(a=>`<li>${esc(a)}</li>`).join("")}</ul>
+  <div class="callout"><span class="label">Production numérique</span><p>${esc(P.production)}</p></div><p class="ref">${esc(P.rap)}</p></div></article>`}).join("");
+(function(){let h="<thead><tr><th>Équipe</th>"+WEEKS.map((w,i)=>`<th>Séance ${i+1}<br><span style="text-transform:none;letter-spacing:0">${w.d}</span></th>`).join("")+"</tr></thead><tbody>";
+  for(let e=1;e<=4;e++){h+=`<tr><td><b class="mono">Équipe ${e}</b></td>`;for(let s=1;s<=4;s++){const p=poleOf(e,s);const sub=p===1?"Livraison "+RECEP[s].fournisseur:p===3?P3[s].t:POLES[p].verbe;h+=`<td><span class="cell" style="--c:${POLES[p].c}"><b>Pôle ${p}</b><span>${esc(POLES[p].court)} · ${esc(sub)}</span></span></td>`}h+="</tr>"}
+  $("#rotation").innerHTML=h+"</tbody>";})();
+/* ---------- quiz de révision ---------- */
+let qTheme="stock",qs=0,qd=0;
+function renderQuiz(){const Q=QUIZZES[qTheme];qs=0;qd=0;
+  $("#qthemes").innerHTML=Object.entries(QUIZZES).map(([k,v])=>`<button type="button" data-k="${k}" aria-pressed="${k===qTheme}">${esc(v.t)}</button>`).join("");
+  $("#qtitle").textContent="Quiz · "+Q.t;
+  $("#quiz").innerHTML=Q.q.map((q,i)=>`<div class="q" data-i="${i}"><b>${i+1}. ${esc(q.q)}</b><div class="opts">${q.o.map((o,j)=>`<button type="button" data-j="${j}">${esc(o)}</button>`).join("")}</div><p class="muted" hidden>${esc(q.e)}</p></div>`).join("");
+  $("#qscore").textContent="0 / "+Q.q.length}
+$("#qthemes").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;qTheme=b.dataset.k;renderQuiz()});
+$("#qreset").addEventListener("click",renderQuiz);
+$("#quiz").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;const box=b.closest(".q");if(box.dataset.done)return;const Q=QUIZZES[qTheme],q=Q.q[+box.dataset.i];box.dataset.done=1;qd++;
+  box.querySelectorAll("button").forEach((x,k)=>{if(k===q.r)x.classList.add("good")});if(+b.dataset.j===q.r)qs++;else b.classList.add("bad");box.querySelector("p").hidden=false;
+  $("#qscore").textContent=qs+" / "+Q.q.length+(qd===Q.q.length?(qs===Q.q.length?" · parfait !":qs>=Q.q.length*.6?" · bien joué":" · à revoir"):"")});
+renderQuiz();
+
+/* ---------- exercices de calcul ---------- */
+const k3=t=>(1+t/100).toLocaleString("fr-FR",{maximumFractionDigits:3});
+const R=(a,b)=>a+Math.floor(Math.random()*(b-a+1)), pick=a=>a[Math.floor(Math.random()*a.length)], r2=n=>Math.round(n*100)/100, fr=n=>r2(n).toLocaleString("fr-FR");
+const EXOS=[
+ {k:"lin",t:"Linéaire au sol et développé",gen(){const n=R(2,5),l=pick([0.8,1,1.2,1.33,1.5]),v=R(3,6);return {n,l,v,txt:`Un rayon compte ${n} éléments de ${fr(l)} m de long, avec ${v} niveaux de tablettes.`,
+   champs:[["Linéaire au sol (m)",n*l],["Linéaire développé (m)",n*l*v]],corr:`Au sol : ${n} × ${fr(l)} = ${fr(n*l)} m. Développé : ${fr(n*l)} × ${v} = ${fr(n*l*v)} m.`}}},
+ {k:"fac",t:"Nombre de facings",gen(){const al=pick([0.6,0.8,1,1.2,1.5]),lg=pick([5,6,8,10,12]);const f=Math.floor(al*100/lg);return {txt:`Une famille de produits dispose de ${fr(al)} m de linéaire sur une tablette. Un produit mesure ${lg} cm de large.`,
+   champs:[["Nombre de facings possibles",f]],corr:`${fr(al)} m = ${fr(al*100)} cm. ${fr(al*100)} ÷ ${lg} = ${fr(al*100/lg)}, donc ${f} facings (on garde l'entier inférieur).`}}},
+ {k:"ttc",t:"Du prix HT au prix TTC",gen(){const ht=r2(R(300,4500)/100),t=pick([20,5.5,10]);const tva=ht*t/100;return {txt:`Un article coûte ${fr(ht)} € HT. Taux de TVA : ${fr(t)} %.`,
+   champs:[["Montant de la TVA (€)",tva],["Prix TTC (€)",ht+tva]],corr:`TVA : ${fr(ht)} × ${fr(t)} % = ${fr(tva)} €. TTC : ${fr(ht)} + ${fr(tva)} = ${fr(ht+tva)} € (ou ${fr(ht)} × ${k3(t)}).`}}},
+ {k:"ht",t:"Du prix TTC au prix HT",gen(){const t=pick([20,5.5]);const ht=r2(R(300,4000)/100),ttc=r2(ht*(1+t/100));return {txt:`Un article est vendu ${fr(ttc)} € TTC. Taux de TVA : ${fr(t)} %.`,
+   champs:[["Prix HT (€)",ttc/(1+t/100)]],corr:`HT = ${fr(ttc)} ÷ ${k3(t)} = ${fr(ttc/(1+t/100))} €.`}}},
+ {k:"coef",t:"Appliquer un coefficient",gen(){const pa=r2(R(200,2500)/100),c=pick([1.8,2,2.2,2.5,3]);const pv=pa*c;return {txt:`Le LB Shop achète un article ${fr(pa)} € HT et applique un coefficient multiplicateur de ${fr(c)}. TVA 20 %.`,
+   champs:[["Prix de vente HT (€)",pv],["Prix de vente TTC (€)",pv*1.2]],corr:`PV HT = ${fr(pa)} × ${fr(c)} = ${fr(pv)} €. PV TTC = ${fr(pv)} × 1,2 = ${fr(pv*1.2)} €.`}}},
+ {k:"trouvecoef",t:"Retrouver le coefficient",gen(){const pa=R(4,20),c=pick([1.5,2,2.5,3]);const pv=pa*c;return {txt:`Un article acheté ${fr(pa)} € HT est vendu ${fr(pv)} € HT.`,
+   champs:[["Coefficient multiplicateur",c]],corr:`Coefficient = PV HT ÷ PA HT = ${fr(pv)} ÷ ${fr(pa)} = ${fr(c)}.`}}},
+ {k:"tvattc",t:"Retrouver la TVA dans un prix TTC",gen(){const t=pick([20,5.5]);const ht=r2(R(500,6000)/100),ttc=r2(ht*(1+t/100)),h=ttc/(1+t/100);return {txt:`Le client paie ${fr(ttc)} € TTC. Taux de TVA : ${fr(t)} %.`,
+   champs:[["Prix HT (€)",h],["Montant de la TVA (€)",ttc-h]],corr:`HT = ${fr(ttc)} ÷ ${k3(t)} = ${fr(h)} €. TVA = ${fr(ttc)} − ${fr(h)} = ${fr(ttc-h)} €.`}}},
+ {k:"marge",t:"Marge et taux de marque",gen(){const pa=R(5,25),pv=pa+R(3,20);const m=pv-pa;return {txt:`Prix d'achat HT : ${fr(pa)} €. Prix de vente HT : ${fr(pv)} €.`,
+   champs:[["Marge brute (€)",m],["Taux de marque (%)",m/pv*100]],corr:`Marge = ${fr(pv)} − ${fr(pa)} = ${fr(m)} €. Taux de marque = ${fr(m)} ÷ ${fr(pv)} × 100 = ${fr(m/pv*100)} %.`}}}
+];
+let xok=0;const exoState={};
+function renderExo(i){const E=EXOS[i],g=E.gen();exoState[i]=g;const el=document.getElementById("exo-"+i);delete el.dataset.won;
+  el.innerHTML=`<div class="label">Exercice ${i+1}</div><h3>${esc(E.t)}</h3><p>${esc(g.txt)}</p>
+   ${g.champs.map(([l],j)=>`<div class="field"><label for="x-${i}-${j}">${esc(l)}</label><input type="text" inputmode="decimal" id="x-${i}-${j}" autocomplete="off"></div>`).join("")}
+   <div class="actions"><button type="button" class="btn sm" data-x="check">Vérifier</button><button type="button" class="btn ghost sm" data-x="new">Nouvel exercice</button></div>
+   <p class="status" id="xr-${i}"></p><p class="muted" id="xc-${i}" hidden></p>`}
+$("#exos").innerHTML=EXOS.map((_,i)=>`<div class="panel stack" id="exo-${i}" data-i="${i}"></div>`).join("");EXOS.forEach((_,i)=>renderExo(i));
+$("#exos").addEventListener("click",e=>{const b=e.target.closest("button[data-x]");if(!b)return;const box=b.closest("[data-i]"),i=+box.dataset.i;
+  if(b.dataset.x==="new"){renderExo(i);return}
+  const g=exoState[i];let all=true,empty=false;g.champs.forEach(([l,v],j)=>{const inp=$(`#x-${i}-${j}`),n=num(inp.value);if(n===null)empty=true;const ok=n!==null&&Math.abs(n-v)<=Math.max(0.011,Math.abs(v)*0.002);inp.style.borderColor=n===null?"":ok?"var(--ok)":"var(--err)";if(!ok)all=false});
+  const r=$("#xr-"+i);if(empty){r.textContent="Remplis toutes les cases.";r.className="status";return}
+  if(all&&!box.dataset.won){box.dataset.won=1;xok++;$("#xscore").textContent=xok+" bonne"+(xok>1?"s":"")+" réponse"+(xok>1?"s":"")}
+  r.textContent=all?"Bravo, c'est juste ✓":"Ce n'est pas encore ça. Regarde la correction.";r.className="status "+(all?"ok":"err");const c=$("#xc-"+i);c.textContent="Correction : "+g.corr;c.hidden=false});
+
+
+/* ---------- mission ---------- */
+function seg(el,cur,fmt,cb){el.innerHTML=[1,2,3,4].map(v=>`<button type="button" data-v="${v}" aria-pressed="${v===cur}">${fmt(v)}</button>`).join("");el.onclick=ev=>{const b=ev.target.closest("button");if(b)cb(+b.dataset.v)}}
+function setG(g){G=g;ls.set("lb_g",g);renderPickers();renderAll();renderMission()}
+function renderGroupSegs(){["#seg-g","#seg-g-hero","#seg-g-prof"].forEach(id=>{const el=$(id);if(!el)return;el.innerHTML=["A","B"].map(g=>`<button type="button" data-v="${g}" aria-pressed="${g===G}">Groupe ${g}</button>`).join("");el.onclick=ev=>{const b=ev.target.closest("button");if(b)setG(b.dataset.v)}});
+  document.querySelectorAll(".gname").forEach(x=>x.textContent="Groupe "+G)}
+function renderPickers(){renderGroupSegs();
+  seg($("#seg-e"),E,v=>"Équipe "+v,v=>{E=v;ls.set("lb_e",v);renderPickers();renderMission()});
+  seg($("#seg-s"),S,v=>"Séance "+v,v=>{S=v;ls.set("lb_s",v);renderPickers();renderMission()});
+}
+let pending=[];
+const draftKey=()=>"lb_draft_"+G+E+"_"+S, checkKey=()=>"lb_chk_"+G+E+"_"+S;
+function missionActs(p){
+  if(p===1) return {sub:"Zone confiée par la responsable · Livraison "+RECEP[S].fournisseur,acts:POLES[1].activites};
+  if(p===3){const m=P3[S];
+    if(m.lin) return {sub:m.t,acts:LIN_STEPS(m.zone).concat(ILVPLV(m.zone))};
+    if(reglages.demontage===G) return {sub:m.t+" · votre groupe démonte la vitrine",acts:[VIT.obs,...VIT.demont,...VIT.projet,...ILVPLV(m.zone)]};
+    if(reglages.demontage) return {sub:m.t+" · l'autre groupe démonte, vous étudiez des vitrines",acts:[VIT.obs,...VIT.etude,...VIT.projet,...ILVPLV(m.zone)]};
+    return {sub:m.t,acts:[VIT.obs,...VIT.projet,...ILVPLV(m.zone)],variants:[{t:"Si votre groupe démonte la vitrine",a:VIT.demont},{t:"Si l'autre groupe l'a déjà démontée",a:VIT.etude}]};}
+  return {sub:POLES[p].verbe,acts:POLES[p].activites};
+}
+/* ===== Outil : prix de vente (pôle 2) ===== */
+function prixHTML(draft){const d=draft.prix||{};const f=(id,l,ph,h)=>`<div class="field"><label for="px-${id}">${l}</label>${h?`<span class="hint">${h}</span>`:""}<input type="text" inputmode="decimal" id="px-${id}" value="${esc(d[id]||"")}" placeholder="${ph}"></div>`;
+  return `<div class="tool" style="--c:var(--p2)">
+   <div class="tool-h"><div class="actions"><span class="part">PARTIE C</span><h3>Fixer le prix de vente</h3></div><span class="muted">≈ 25 min</span></div>
+   <div class="tool-b">
+    <div class="grid2">
+     <div class="callout"><span class="label">Les formules</span>
+      <p><b>Prix de vente HT</b> = prix d'achat HT × coefficient multiplicateur</p>
+      <p><b>Prix de vente TTC</b> = prix de vente HT × (1 + taux de TVA)</p>
+      <p><b>Marge brute</b> = prix de vente HT − prix d'achat HT</p>
+      <p><b>Taux de marque</b> = marge brute ÷ prix de vente HT × 100</p></div>
+     <div class="callout"><span class="label">Exemple</span>
+      <p>Un pull acheté 8,00 € HT, coefficient 2,5 → 20,00 € HT → 24,00 € TTC (TVA 20 %). Prix psychologique proposé : 23,90 €.</p>
+      <p class="muted">TVA : 20 % pour la plupart des produits, 5,5 % pour l'alimentaire, 10 % pour certains produits et services.</p></div>
+    </div>
+    <div class="row3">${f("pa","Prix d'achat HT (€)","8,00","Donné par la responsable")}${f("coef","Coefficient multiplicateur","2,5","Souvent entre 1,8 et 3")}
+     <div class="field"><label for="px-tva">Taux de TVA</label><span class="hint">Selon le type de produit</span><select id="px-tva">${[["20","20 % · cas général"],["5.5","5,5 % · alimentaire"],["10","10 %"]].map(([v,l])=>`<option value="${v}" ${(d.tva||"20")===v?"selected":""}>${l}</option>`).join("")}</select></div></div>
+    <div class="kpis"><div class="kpi"><span class="label">Prix de vente HT</span><b id="px-pvht">—</b></div><div class="kpi"><span class="label">Prix de vente TTC</span><b id="px-pvttc">—</b></div><div class="kpi"><span class="label">Marge brute</span><b id="px-marge">—</b></div><div class="kpi"><span class="label">Taux de marque</span><b id="px-tm">—</b></div></div>
+    <div class="label">Prix TTC de produits comparables chez les concurrents</div>
+    <div class="row3">${f("c1","Concurrent 1 (€)","","Nom du magasin ou du site dans la justification")}${f("c2","Concurrent 2 (€)","","")}${f("c3","Concurrent 3 (€)","","")}</div>
+    <div class="row3">${f("final","Votre prix de vente TTC final (€)","23,90","Un prix psychologique, par exemple en ,90 ou ,99")}
+     <div class="kpi"><span class="label">Moyenne des concurrents</span><b id="px-moy">—</b></div><div class="kpi"><span class="label">Avec votre prix final</span><b id="px-fin" style="font-size:1rem">—</b></div></div>
+    <p class="status" id="px-msg"></p>
+   </div></div>`}
+function readPrix(){if(!$("#px-pa"))return null;const o={};["pa","coef","c1","c2","c3","final"].forEach(k=>o[k]=$("#px-"+k).value);o.tva=$("#px-tva").value;return o}
+function calcPrix(){if(!$("#px-pa"))return;const d=readPrix(),pa=num(d.pa),co=num(d.coef),t=num(d.tva)/100,fin=num(d.final);
+  const pvht=pa!==null&&co!==null?pa*co:null,pvttc=pvht!==null?pvht*(1+t):null;
+  $("#px-pvht").textContent=pvht!==null?eur(pvht):"—";$("#px-pvttc").textContent=pvttc!==null?eur(pvttc):"—";
+  $("#px-marge").textContent=pvht!==null?eur(pvht-pa):"—";$("#px-tm").textContent=pvht?(Math.round((pvht-pa)/pvht*1000)/10).toLocaleString("fr-FR")+" %":"—";
+  const cs=[d.c1,d.c2,d.c3].map(num).filter(x=>x!==null),moy=cs.length?cs.reduce((a,b)=>a+b,0)/cs.length:null;$("#px-moy").textContent=moy!==null?eur(moy):"—";
+  let fm="—",msg="";
+  if(fin!==null&&pa!==null){const h=fin/(1+t),m=h-pa;fm=`marge ${eur(m)} · taux de marque ${(Math.round(m/h*1000)/10).toLocaleString("fr-FR")} %`;
+    if(m<=0)msg="Attention : à ce prix, le LB Shop vend à perte.";
+    else if(moy!==null)msg=fin>moy?`Votre prix est ${eur(fin-moy)} au-dessus de la moyenne des concurrents : justifiez-le (qualité, service, nouveauté).`:`Votre prix est ${eur(moy-fin)} en dessous de la moyenne des concurrents : c'est un argument de vente.`}
+  else if(pvttc!==null){msg="Prix psychologique possible : "+eur(Math.ceil(pvttc)-0.1)}
+  $("#px-fin").textContent=fm;const el=$("#px-msg");el.textContent=msg;el.className="status "+(msg.startsWith("Attention")?"err":"");updateFiche()}
+
+/* ===== Aperçu de la fiche produit ===== */
+function ficheHTML(part,c){part=part||"PARTIE D";c=c||"var(--p2)";return `<div class="tool" style="--c:${c}">
+   <div class="tool-h"><div class="actions"><span class="part">${part}</span><h3>Aperçu de la fiche produit</h3></div><span class="muted">${part==="PARTIE D"?"≈ 10 min":"se remplit avec votre fiche de rendu"}</span></div>
+   <div class="tool-b"><p class="muted">L'aperçu se construit à partir de votre fiche de rendu (plus bas), de votre première photo et de votre prix.</p>
+    <div class="fiche" id="fiche"></div></div></div>`}
+function updateFiche(){const f=$("#fiche");if(!f)return;const v=id=>{const e=$("#f-"+id);return e?e.value.trim():""};
+  const img=pending.find(x=>x.type&&x.type.startsWith("image")),des=(v("q1").split("\n")[0])||"Désignation du produit",car=v("q2").split("\n").map(x=>x.replace(/^[-•*]\s*/,"").trim()).filter(Boolean);
+  const pr=readPrix(),fin=pr?num(pr.final):num(v("px4")),calc=pr&&num(pr.pa)!==null&&num(pr.coef)!==null?num(pr.pa)*num(pr.coef)*(1+num(pr.tva)/100):null,price=fin!==null&&fin!==undefined?fin:calc;
+  f.innerHTML=`<div class="fiche-img">${img?`<img src="/_blob/${esc(img.id)}" alt="">`:`<span>Photo du produit</span>`}</div>
+   <div class="fiche-body"><span class="label">LB Shop · Fiche produit</span><h3>${esc(des)}</h3>
+    <p>${esc(v("q3")||"La description commerciale apparaîtra ici.")}</p>
+    ${car.length?`<ul class="clean">${car.map(c=>`<li>${esc(c)}</li>`).join("")}</ul>`:""}
+    <div class="fiche-price">${price!==null&&price!==undefined?eur(price):"— €"}<small>Prix TTC</small></div></div>`}
+/* ===== Outil : contrôle de réception ===== */
+function recepHTML(draft){
+  const R=RECEP[S], d=draft.recep||{}, rows=d.rows||[];
+  const cmdL=R.lignes.filter(l=>l.cmd>0), ht=cmdL.reduce((s,l)=>s+l.cmd*l.pu,0);
+  return `<div class="tool" style="--c:var(--p1)">
+   <div class="tool-h"><div class="actions"><span class="part">PARTIE A</span><h3>Contrôle de la livraison ${esc(R.fournisseur)}</h3></div><span class="muted">≈ 35 min</span></div>
+   <div class="tool-b">
+    <p>Avant de ranger quoi que ce soit, on vérifie que le LB Shop a bien reçu ce qu'il a commandé. On compare 3 choses : le <b>bon de commande</b> (ce qu'on a demandé), le <b>bon de livraison</b> (ce que le fournisseur dit avoir envoyé) et le <b>colis</b> (ce qu'on a réellement reçu).</p>
+    <div class="docs">
+     <div class="doc"><div class="doc-h"><b>Bon de commande</b><span class="mono">${R.bc} · ${R.bcDate}</span></div>
+      <div class="muted">LB Shop → ${esc(R.fournisseur)}</div>
+      <div class="tablewrap"><table><thead><tr><th>Réf.</th><th>Désignation</th><th>Qté</th><th>PU HT</th><th>Montant HT</th></tr></thead><tbody>
+      ${cmdL.map(l=>`<tr><td class="mono">${l.ref}</td><td>${esc(l.des)}</td><td class="n">${l.cmd}</td><td class="n">${eur(l.pu)}</td><td class="n">${eur(l.cmd*l.pu)}</td></tr>`).join("")}
+      <tr><td colspan="4">Total HT</td><td class="n">${eur(ht)}</td></tr><tr><td colspan="4">TVA 20 %</td><td class="n">${eur(ht*.2)}</td></tr><tr><td colspan="4"><b>Total TTC</b></td><td class="n"><b>${eur(ht*1.2)}</b></td></tr></tbody></table></div></div>
+     <div class="doc"><div class="doc-h"><b>Bon de livraison</b><span class="mono">${R.bl} · ${R.blDate}</span></div>
+      <div class="muted">${esc(R.fournisseur)} → LB Shop · réf. commande ${R.bc}</div>
+      <div class="tablewrap"><table><thead><tr><th>Réf.</th><th>Désignation</th><th>Qté livrée</th><th>Reliquat</th></tr></thead><tbody>
+      ${R.lignes.map(l=>`<tr><td class="mono">${l.ref}</td><td>${esc(l.des)}</td><td class="n">${l.liv}</td><td class="n">${l.reliquat?l.reliquat+" à suivre":"—"}</td></tr>`).join("")}</tbody></table></div>
+      <div class="muted">Signature et réserves du destinataire : ………………</div></div>
+    </div>
+    <div class="colis"><div class="actions" style="justify-content:space-between"><b>Le colis</b><button type="button" class="btn sm" id="opencolis">${d.open?"Refermer le colis":"Ouvrir le colis"}</button></div>
+     <ul id="colislist" ${d.open?"":"hidden"}>${R.lignes.map(l=>`<li>${esc(l.colis)}</li>`).join("")}</ul></div>
+    <div class="label">Grille de contrôle</div>
+    <div class="tablewrap"><table class="ctrl" id="ctrl"><thead><tr><th>Réf.</th><th>Commandé</th><th>Livré (BL)</th><th>Reçu</th><th>Constat</th><th>Observation</th><th></th></tr></thead><tbody>
+     ${R.lignes.map((l,i)=>{const r=rows[i]||{};return `<tr><td class="mono">${l.ref}</td><td class="mono">${l.cmd||"—"}</td><td class="mono">${l.liv}</td>
+      <td><input type="number" min="0" data-k="recu" value="${esc(r.recu??"")}" aria-label="Quantité reçue ${l.ref}"></td>
+      <td><select data-k="statut" aria-label="Constat ${l.ref}">${STATUTS.map(s=>`<option ${r.statut===s?"selected":""} value="${s}">${s||"Choisir…"}</option>`).join("")}</select></td>
+      <td><input type="text" data-k="obs" value="${esc(r.obs||"")}" aria-label="Observation ${l.ref}"></td><td class="mark"></td></tr>`}).join("")}</tbody></table></div>
+    <div class="field"><span class="flabel">Décision de réception</span><div class="radios">${["Accepter la livraison","Accepter avec réserves","Refuser la livraison"].map(v=>`<label><input type="radio" name="decision" value="${v}" ${d.decision===v?"checked":""}><span>${v}</span></label>`).join("")}</div></div>
+    <div class="field"><label for="f-reserves">Réserves à porter sur le bon de livraison</label><span class="hint">Pour chaque problème : référence, quantité, nature du problème. Exemple : « VF-102 : 1 écharpe manquante ».</span><textarea id="f-reserves">${esc(d.reserves||"")}</textarea></div>
+    <div class="actions"><button type="button" class="btn ghost" id="checkrecep">Vérifier mon contrôle</button><span class="status" id="recepres"></span></div>
+   </div></div>`;
+}
+function readRecep(){const t=$("#ctrl");if(!t)return null;
+  return {rows:[...t.querySelectorAll("tbody tr")].map(tr=>({recu:tr.querySelector('[data-k=recu]').value,statut:tr.querySelector('[data-k=statut]').value,obs:tr.querySelector('[data-k=obs]').value})),
+    decision:(document.querySelector('input[name=decision]:checked')||{}).value||"",reserves:$("#f-reserves").value,open:!$("#colislist").hidden}}
+function checkRecep(){const R=RECEP[S],d=readRecep();let ok=0;
+  [...$("#ctrl").querySelectorAll("tbody tr")].forEach((tr,i)=>{const good=d.rows[i].statut===R.lignes[i].cle;if(good)ok++;const m=tr.querySelector(".mark");m.textContent=d.rows[i].statut?(good?"✓":"✗"):"?";m.className="mark "+(d.rows[i].statut?(good?"ok":"ko"):"")});
+  const dec=d.decision==="Accepter avec réserves";
+  $("#recepres").textContent=`${ok} / ${R.lignes.length} lignes bien contrôlées${d.decision?(dec?" · décision cohérente":" · revoyez la décision"):""}`;
+  $("#recepres").className="status "+(ok===R.lignes.length&&dec?"ok":"")}
+
+/* ===== Outil : tableau d'inventaire ===== */
+function invHTML(draft){
+  let rows=draft.inv&&draft.inv.length?draft.inv:Array.from({length:8},()=>({}));
+  return `<div class="tool" style="--c:var(--p1)">
+   <div class="tool-h"><div class="actions"><span class="part">PARTIE B</span><h3>Tableau d'inventaire</h3></div><span class="muted">≈ 50 min</span></div>
+   <div class="tool-b">
+    <div class="callout glow"><span class="label">Avant de commencer</span><p>Photographiez votre zone de la réserve telle qu'elle est maintenant (vue d'ensemble et un détail), avant de trier ou de ranger. Ces photos AVANT serviront au bilan avant/après.</p></div>
+    <div class="field"><label for="f-zone">Zone ou famille inventoriée</label><span class="hint">Celle que la responsable vous a confiée : vêtements, décoration, jouets, bijoux…</span><input type="text" id="f-zone" value="${esc(draft.invZone||"")}" placeholder="Ex. : décoration, étagère B"></div>
+    <p class="muted">Le tableau est vierge : une ligne par article différent (même désignation, même taille ou couleur). Choisissez vous-mêmes vos codes. Les totaux se calculent seuls.</p>
+    <div class="kpis"><div class="kpi"><span class="label">Références</span><b id="k-ref">0</b></div><div class="kpi"><span class="label">Articles comptés</span><b id="k-art">0</b></div><div class="kpi"><span class="label">Abîmés ou sans étiquette</span><b id="k-ab">0</b></div></div>
+    <div class="tablewrap"><table class="inv" id="inv"><thead><tr><th>Code</th><th>Famille</th><th>Désignation</th><th>Taille / couleur</th><th>Qté comptée</th><th>État</th><th>Emplacement</th><th></th></tr></thead>
+     <tbody>${rows.map(invRow).join("")}</tbody>
+     <tfoot><tr><td colspan="4">Total</td><td class="calc" id="t-cpt">0</td><td colspan="3"></td></tr></tfoot></table></div>
+    <div class="actions"><button type="button" class="btn ghost sm" id="addrow">+ Ajouter une ligne</button></div>
+   </div></div>`;
+}
+function invRow(r){r=r||{};return `<tr>
+  <td><input type="text" data-k="code" value="${esc(r.code||"")}" style="width:80px" aria-label="Code"></td>
+  <td><select data-k="fam" aria-label="Famille">${["","Vêtements femme","Vêtements enfant","Jouets","Bijoux","Décoration","Vaisselle","Alimentaire","Accessoires","Autre"].map(s=>`<option ${r.fam===s?"selected":""} value="${s}">${s||"—"}</option>`).join("")}</select></td>
+  <td><input type="text" data-k="des" value="${esc(r.des||"")}" style="min-width:180px" aria-label="Désignation"></td>
+  <td><input type="text" data-k="taille" value="${esc(r.taille||"")}" style="width:100px" aria-label="Taille ou couleur"></td>
+  <td><input type="number" min="0" data-k="cpt" value="${esc(r.cpt??"")}" style="width:70px" aria-label="Quantité comptée"></td>
+  <td><select data-k="etat" aria-label="État">${["Bon","Abîmé","Sans étiquette"].map(s=>`<option ${r.etat===s?"selected":""}>${s}</option>`).join("")}</select></td>
+  <td><input type="text" data-k="empl" value="${esc(r.empl||"")}" style="width:80px" aria-label="Emplacement"></td>
+  <td><button type="button" class="del" aria-label="Supprimer la ligne">×</button></td></tr>`}
+function readInv(){const t=$("#inv");if(!t)return null;return [...t.querySelectorAll("tbody tr")].map(tr=>{const o={};tr.querySelectorAll("[data-k]").forEach(i=>o[i.dataset.k]=i.value);return o})}
+const num=v=>{const n=parseFloat(String(v).replace(",","."));return isNaN(n)?null:n};
+function calcInv(){const t=$("#inv");if(!t)return;let ref=0,art=0,ab=0;
+  t.querySelectorAll("tbody tr").forEach(tr=>{const g=k=>tr.querySelector(`[data-k=${k}]`).value;const cpt=num(g("cpt"));
+    if(g("des")||cpt!==null)ref++; if(cpt!==null)art+=cpt;
+    if(g("etat")!=="Bon"&&cpt!==null)ab+=cpt});
+  $("#k-ref").textContent=ref;$("#k-art").textContent=art;$("#k-ab").textContent=ab;$("#t-cpt").textContent=art}
+
+/* ===== Outil : linéaire ===== */
+function linHTML(draft){
+  const m=P3[S], d=draft.lin||{}, rows=d.rows&&d.rows.length?d.rows:m.familles.map(f=>({fam:f}));
+  return `<div class="tool" style="--c:var(--p3)">
+   <div class="tool-h"><div class="actions"><span class="part">PARTIE A</span><h3>Calculateur de linéaire · ${esc(m.zone.replace("l'",""))}</h3></div><span class="muted">≈ 45 min</span></div>
+   <div class="tool-b">
+    <div class="grid2">
+     <div class="callout"><span class="label">À retenir</span>
+      <p><b>Linéaire au sol</b> = longueur du meuble posée au sol = nombre d'éléments × longueur d'un élément.</p>
+      <p><b>Linéaire développé</b> = longueur totale des tablettes où l'on pose les produits = linéaire au sol × nombre de niveaux.</p>
+      <p class="muted">Exemple : 3 éléments de 1,20 m avec 5 niveaux → 3,60 m au sol, 18 m développés.</p></div>
+     <div class="callout"><span class="label">Les niveaux de présentation</span>
+      <ul class="clean"><li><b>Chapeau</b> (haut) : petits produits, réserve visuelle</li><li><b>Yeux</b> : produits d'appel, nouveautés, meilleures marges</li><li><b>Mains</b> : produits achetés couramment</li><li><b>Sol</b> : produits lourds, gros formats, lots</li></ul></div>
+    </div>
+    ${m.conseil?`<div class="callout glow"><span class="label">Spécificité de cet espace</span><p>${esc(m.conseil)}</p></div>`:""}
+    <div class="row3">
+     <div class="field"><label for="lin-n">Nombre d'éléments (meubles)</label><input type="text" inputmode="decimal" id="lin-n" value="${esc(d.n??"")}"></div>
+     <div class="field"><label for="lin-l">Longueur d'un élément (m)</label><input type="text" inputmode="decimal" id="lin-l" value="${esc(d.l??"")}"></div>
+     <div class="field"><label for="lin-v">Nombre de niveaux</label><input type="text" inputmode="decimal" id="lin-v" value="${esc(d.v??"")}"></div>
+    </div>
+    <div class="kpis"><div class="kpi"><span class="label">Linéaire au sol</span><b id="lin-las">—</b></div><div class="kpi"><span class="label">Linéaire développé</span><b id="lin-ld">—</b></div><div class="kpi"><span class="label">Linéaire réparti</span><b id="lin-rep">—</b></div><div class="kpi"><span class="label">Reste à répartir</span><b id="lin-rest">—</b></div></div>
+    <div class="label">Répartition entre les familles</div>
+    <div class="tablewrap"><table class="inv" id="lin" style="min-width:680px"><thead><tr><th>Famille</th><th>Niveau(x)</th><th>Linéaire alloué (m)</th><th>Part du développé</th><th>Largeur d'un produit (cm)</th><th>Facings possibles</th></tr></thead><tbody>
+     ${rows.map(r=>`<tr><td><input type="text" data-k="fam" value="${esc(r.fam||"")}" aria-label="Famille"></td>
+      <td><select data-k="niv" aria-label="Niveau">${["","Chapeau","Yeux","Mains","Sol","Yeux + mains","Mains + sol","Tous niveaux"].map(s=>`<option ${r.niv===s?"selected":""} value="${s}">${s||"Choisir…"}</option>`).join("")}</select></td>
+      <td><input type="text" inputmode="decimal" data-k="al" value="${esc(r.al??"")}" style="width:90px" aria-label="Linéaire alloué"></td><td class="calc" data-c="pct">—</td>
+      <td><input type="text" inputmode="decimal" data-k="larg" value="${esc(r.larg??"")}" style="width:90px" aria-label="Largeur d'un produit"></td><td class="calc" data-c="fac">—</td></tr>`).join("")}
+    </tbody></table></div>
+    <p class="muted">Un facing = un produit visible de face sur une tablette. Facings possibles = linéaire alloué (en cm) ÷ largeur d'un produit (en cm).</p>
+   </div></div>`;
+}
+function readLin(){if(!$("#lin"))return null;return {n:$("#lin-n").value,l:$("#lin-l").value,v:$("#lin-v").value,rows:[...$("#lin").querySelectorAll("tbody tr")].map(tr=>{const o={};tr.querySelectorAll("[data-k]").forEach(i=>o[i.dataset.k]=i.value);return o})}}
+const mfmt=n=>(Math.round(n*100)/100).toLocaleString("fr-FR")+" m";
+function calcLin(){if(!$("#lin"))return;const n=num($("#lin-n").value),l=num($("#lin-l").value),v=num($("#lin-v").value);
+  const las=n!==null&&l!==null?n*l:null, ld=las!==null&&v!==null?las*v:null; let rep=0;
+  $("#lin").querySelectorAll("tbody tr").forEach(tr=>{const al=num(tr.querySelector('[data-k=al]').value),lg=num(tr.querySelector('[data-k=larg]').value);
+    if(al!==null)rep+=al; tr.querySelector('[data-c=pct]').textContent=al!==null&&ld?Math.round(al/ld*100)+" %":"—";
+    tr.querySelector('[data-c=fac]').textContent=al!==null&&lg?Math.floor(al*100/lg):"—"});
+  $("#lin-las").textContent=las!==null?mfmt(las):"—";$("#lin-ld").textContent=ld!==null?mfmt(ld):"—";$("#lin-rep").textContent=mfmt(rep);
+  const rest=ld!==null?ld-rep:null, el=$("#lin-rest"); el.textContent=rest!==null?mfmt(rest):"—"; el.style.color=rest!==null&&rest<-0.001?"var(--err)":""}
+
+/* ===== Outil : créateur ILV / PLV ===== */
+const TPL={prix:{n:"Étiquette prix (ILV)",w:600,h:360},rayon:{n:"Panneau de rayon (ILV)",w:900,h:280},plv:{n:"Affiche ou stop-rayon (PLV)",w:600,h:840}};
+const SW=["#0E8577","#6A45C9","#D0397A","#D9711C","#1B1626","#B8862B"];
+let cState={tpl:"prix",col:SW[3],bg:"feuilles",veil:0}, bgImg=null;
+const FONDS=[["uni","Couleur unie"],["degrade","Dégradé d'automne"],["feuilles","Feuilles d'automne"],["rayures","Rayures"],["pois","Pois"],["image","Mon propre fond (image importée)"]];
+function creatorHTML(){const s=ls.get("lb_creator",{});cState={tpl:s.tpl||"prix",col:s.col||SW[3],bg:(s.bg&&s.bg!=="image")?s.bg:"feuilles",veil:s.veil||0};
+  return `<div class="tool" style="--c:var(--p3)">
+   <div class="tool-h"><div class="actions"><span class="part">PARTIE B</span><h3>Créateur d'ILV et de PLV</h3></div><span class="muted">≈ 40 min</span></div>
+   <div class="tool-b">
+    <div class="ilvplv">
+     <div class="callout"><span class="label">ILV · Information sur le lieu de vente</span><p>Elle <b>informe et oriente</b> le client : étiquette prix, nom du rayon, fléchage, composition, tailles.</p><p class="muted">Étiquette prix : désignation, prix TTC en euros, prix au kg ou au litre pour l'alimentaire et les produits vendus au volume. En promotion, le prix de référence barré.</p></div>
+     <div class="callout"><span class="label">PLV · Publicité sur le lieu de vente</span><p>Elle <b>attire l'attention et pousse à l'achat</b> : affiche, stop-rayon, chevalet, totem, présentoir.</p><p class="muted">Une seule idée, une accroche courte, lisible à 3 mètres, aux couleurs du thème.</p></div>
+    </div>
+    <div class="creator">
+     <div class="stack">
+      <div class="field"><label for="c-tpl">Support</label><select id="c-tpl">${Object.entries(TPL).map(([k,t])=>`<option value="${k}" ${cState.tpl===k?"selected":""}>${t.n}</option>`).join("")}</select></div>
+      <div class="field"><label for="c-t">Désignation, nom du rayon ou titre</label><input type="text" id="c-t" value="${esc(s.t||"")}" placeholder="Bougie parfumée cannelle 180 g"></div>
+      <div class="field"><label for="c-d">Détail (composition, tailles, sous-titre)</label><input type="text" id="c-d" value="${esc(s.d||"")}" placeholder="Cire végétale · 40 h de combustion"></div>
+      <div class="row3">
+       <div class="field"><label for="c-p">Prix TTC</label><input type="text" inputmode="decimal" id="c-p" value="${esc(s.p||"")}" placeholder="6,90"></div>
+       <div class="field"><label for="c-o">Prix de référence</label><input type="text" inputmode="decimal" id="c-o" value="${esc(s.o||"")}" placeholder="facultatif"></div>
+       <div class="field"><label for="c-u">Prix au kg / au L</label><input type="text" id="c-u" value="${esc(s.u||"")}" placeholder="38,33 €/kg"></div>
+      </div>
+      <div class="field"><label for="c-a">Accroche (PLV)</label><input type="text" id="c-a" value="${esc(s.a||"")}" placeholder="L'automne s'installe au LB Shop"></div>
+      <div class="field"><span class="flabel">Couleur</span><div class="swatches" id="c-sw">${SW.map(c=>`<button type="button" style="background:${c}" data-c="${c}" aria-pressed="${c===cState.col}" aria-label="Couleur ${c}"></button>`).join("")}</div></div>
+      <div class="field"><label for="c-bg">Fond (panneau de rayon et PLV)</label><select id="c-bg">${FONDS.map(([k,l])=>`<option value="${k}" ${cState.bg===k?"selected":""}>${l}</option>`).join("")}</select>
+       <span class="hint">Créez votre fond (dessin scanné, photo de feuilles, création Canva…) puis importez-le.</span>
+       <label class="filebtn"><input type="file" id="c-img" accept="image/*">Importer mon fond</label></div>
+      <div class="field"><label for="c-veil">Voile sombre pour la lisibilité du texte : <span id="c-veilv">${cState.veil}</span> %</label><input type="range" id="c-veil" min="0" max="70" step="5" value="${cState.veil}"></div>
+     </div>
+     <div class="stack"><canvas id="c-canvas" width="600" height="360" aria-label="Aperçu du support"></canvas>
+      <div class="actions"><button type="button" class="btn glow sm" id="c-add">Ajouter à ma production</button><button type="button" class="btn ghost sm" id="c-save" hidden>Enregistrer l'image</button><span class="status" id="c-st"></span></div>
+      <p class="muted">Imprimez l'image enregistrée ou recopiez-la à la main, puis installez-la dans le magasin.</p></div>
+    </div>
+   </div></div>`}
+function wrapText(ctx,txt,x,y,maxW,lh,maxL){const words=String(txt).split(/\s+/);let line="",n=0;
+  for(let i=0;i<words.length;i++){const t=line?line+" "+words[i]:words[i];if(ctx.measureText(t).width>maxW&&line){ctx.fillText(line,x,y);y+=lh;line=words[i];if(++n>=maxL-1){line=words.slice(i).join(" ");break}}else line=t}
+  if(line)ctx.fillText(line,x,y);return y+lh}
+function drawBg(x,T,col){
+  const w=T.w,h=T.h;x.fillStyle=col;x.fillRect(0,0,w,h);
+  let seed=7;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
+  if(cState.bg==="degrade"){const g=x.createLinearGradient(0,0,w,h);g.addColorStop(0,col);g.addColorStop(.55,"#B5651D");g.addColorStop(1,"#5A2410");x.fillStyle=g;x.fillRect(0,0,w,h)}
+  else if(cState.bg==="feuilles"){const cs=["#C8553D","#E09F3E","#9E2A2B","#B5651D","#7A9E3B","#F2C14E"];
+    for(let i=0;i<Math.round(w*h/9000);i++){const cx=rnd()*w,cy=rnd()*h,r=10+rnd()*22,a=rnd()*6.28;x.save();x.translate(cx,cy);x.rotate(a);x.globalAlpha=.55+rnd()*.35;
+      x.fillStyle=cs[Math.floor(rnd()*cs.length)];x.beginPath();x.moveTo(0,-r);x.quadraticCurveTo(r*.8,-r*.2,0,r);x.quadraticCurveTo(-r*.8,-r*.2,0,-r);x.fill();
+      x.strokeStyle="rgba(60,25,5,.45)";x.lineWidth=1.5;x.beginPath();x.moveTo(0,-r*.8);x.lineTo(0,r*1.25);x.stroke();x.restore()}x.globalAlpha=1}
+  else if(cState.bg==="rayures"){x.fillStyle="rgba(255,255,255,.13)";for(let i=-h;i<w;i+=48){x.beginPath();x.moveTo(i,0);x.lineTo(i+24,0);x.lineTo(i+24+h,h);x.lineTo(i+h,h);x.fill()}}
+  else if(cState.bg==="pois"){x.fillStyle="rgba(255,255,255,.16)";for(let yy=20;yy<h;yy+=44)for(let xx=(yy/44%2)*22+20;xx<w;xx+=44){x.beginPath();x.arc(xx,yy,7,0,7);x.fill()}}
+  else if(cState.bg==="image"&&bgImg){const s=Math.max(w/bgImg.width,h/bgImg.height),iw=bgImg.width*s,ih=bgImg.height*s;x.drawImage(bgImg,(w-iw)/2,(h-ih)/2,iw,ih)}
+  if(cState.veil>0){x.fillStyle=`rgba(0,0,0,${cState.veil/100})`;x.fillRect(0,0,w,h)}
+}
+function drawCreator(){const cv=$("#c-canvas");if(!cv)return;const T=TPL[cState.tpl];cv.width=T.w;cv.height=T.h;const x=cv.getContext("2d"),col=cState.col;
+  const v=id=>$("#"+id).value.trim(), t=v("c-t")||"Désignation du produit", d=v("c-d"), p=v("c-p"), o=v("c-o"), u=v("c-u"), a=v("c-a")||"Votre accroche ici";
+  const F="'Bricolage Grotesque', Arial, sans-serif", B="'Atkinson Hyperlegible', Arial, sans-serif", M="'IBM Plex Mono', monospace";
+  x.fillStyle="#fff";x.fillRect(0,0,T.w,T.h);
+  if(cState.tpl==="prix"){
+    x.fillStyle=col;x.fillRect(0,0,T.w,54);x.fillStyle="#fff";x.font=`600 20px ${M}`;x.textBaseline="middle";x.fillText("LB SHOP",24,28);
+    x.textBaseline="alphabetic";x.fillStyle="#1B1626";x.font=`800 34px ${F}`;let y=wrapText(x,t,24,104,T.w-48,40,2);
+    x.font=`400 20px ${B}`;x.fillStyle="#5B5468";if(d)wrapText(x,d,24,y,T.w-48,26,2);
+    x.textAlign="right";x.fillStyle=col;x.font=`800 92px ${F}`;x.fillText(p?p.replace(".",",")+" €":"0,00 €",T.w-24,T.h-56);
+    x.font=`600 16px ${M}`;x.fillStyle="#1B1626";x.fillText("PRIX TTC",T.w-24,T.h-26);
+    x.textAlign="left";if(o){x.font=`400 26px ${B}`;x.fillStyle="#5B5468";const s=o.replace(".",",")+" €";x.fillText(s,24,T.h-70);const w=x.measureText(s).width;x.strokeStyle="#C2402C";x.lineWidth=3;x.beginPath();x.moveTo(22,T.h-79);x.lineTo(26+w,T.h-79);x.stroke();x.font=`400 14px ${B}`;x.fillText("Prix de référence",24,T.h-46)}
+    if(u){x.font=`600 16px ${M}`;x.fillStyle="#1B1626";x.fillText(u,24,T.h-22)}
+    x.strokeStyle="#1B1626";x.lineWidth=2;x.strokeRect(1,1,T.w-2,T.h-2);
+  }else if(cState.tpl==="rayon"){
+    drawBg(x,T,col);x.fillStyle="rgba(0,0,0,.25)";x.fillRect(0,T.h-60,T.w,60);
+    x.fillStyle="#fff";x.font=`800 76px ${F}`;x.textAlign="center";x.fillText(t,T.w/2,T.h/2+8);
+    x.font=`400 26px ${B}`;if(d)x.fillText(d,T.w/2,T.h/2+52);x.font=`600 18px ${M}`;x.fillText("LB SHOP",T.w/2,T.h-24);x.textAlign="left";
+  }else{
+    drawBg(x,T,col);x.shadowColor="rgba(0,0,0,.45)";x.shadowBlur=8;
+    x.fillStyle="#fff";x.font=`600 18px ${M}`;x.fillText("LB SHOP · C'EST L'AUTOMNE",40,60);
+    x.font=`800 66px ${F}`;let y=wrapText(x,a,40,170,T.w-80,72,4);
+    x.font=`700 30px ${F}`;y=wrapText(x,t,40,y+30,T.w-80,36,2);x.font=`400 22px ${B}`;if(d)wrapText(x,d,40,y,T.w-80,28,2);
+    if(p){x.beginPath();x.arc(T.w-130,T.h-150,100,0,7);x.fillStyle="#FFC94A";x.fill();x.fillStyle="#2B1E00";x.textAlign="center";x.font=`800 52px ${F}`;x.fillText(p.replace(".",",")+" €",T.w-130,T.h-140);x.font=`600 15px ${M}`;x.fillText("PRIX TTC",T.w-130,T.h-108);
+      if(o){x.font=`400 22px ${B}`;x.fillText("au lieu de "+o.replace(".",",")+" €",T.w-130,T.h-200)}x.textAlign="left"}
+  }
+  x.shadowBlur=0;ls.set("lb_creator",{tpl:cState.tpl,col:cState.col,bg:cState.bg,veil:cState.veil,t:v("c-t"),d,p,o,u,a:v("c-a")});
+}
+const canvasBlob=()=>new Promise(r=>$("#c-canvas").toBlob(r,"image/png"));
+let downloads=null;
+
+function bindTools(p){
+  const save=()=>{clearTimeout(saveT);saveT=setTimeout(()=>ls.set(draftKey(),collect(p)),400)};
+  if($("#ctrl")){
+    $("#opencolis").onclick=()=>{const l=$("#colislist");l.hidden=!l.hidden;$("#opencolis").textContent=l.hidden?"Ouvrir le colis":"Refermer le colis";save()};
+    $("#ctrl").closest(".tool").addEventListener("input",save);$("#ctrl").closest(".tool").addEventListener("change",save);
+    $("#checkrecep").onclick=checkRecep;
+  }
+  if($("#inv")){const t=$("#inv");calcInv();
+    t.addEventListener("input",()=>{calcInv();save()});$("#f-zone").addEventListener("input",save);t.addEventListener("change",()=>{calcInv();save()});
+    t.addEventListener("click",e=>{const b=e.target.closest(".del");if(!b)return;b.closest("tr").remove();calcInv();save()});
+    $("#addrow").onclick=()=>{const n=t.querySelectorAll("tbody tr").length+1;t.querySelector("tbody").insertAdjacentHTML("beforeend",invRow({}));calcInv();save()};
+  }
+  if($("#px-pa")){calcPrix();const tool=$("#px-pa").closest(".tool");tool.addEventListener("input",()=>{calcPrix();save()});tool.addEventListener("change",()=>{calcPrix();save()});$("#rendu").addEventListener("input",updateFiche);updateFiche()}
+  if($("#fiche")&&!$("#px-pa")){$("#rendu").addEventListener("input",updateFiche);updateFiche()}
+  if($("#lin")){calcLin();const tool=$("#lin").closest(".tool");tool.addEventListener("input",()=>{calcLin();save()});tool.addEventListener("change",()=>{calcLin();save()})}
+  if($("#c-canvas")){const tool=$("#c-canvas").closest(".tool");
+    tool.addEventListener("input",drawCreator);$("#c-tpl").addEventListener("change",e=>{cState.tpl=e.target.value;drawCreator()});
+    $("#c-bg").addEventListener("change",e=>{cState.bg=e.target.value;if(cState.bg==="image"&&!bgImg)$("#c-st").textContent="Importez votre fond avec le bouton ci-dessus.";drawCreator()});
+    $("#c-veil").addEventListener("input",e=>{cState.veil=+e.target.value;$("#c-veilv").textContent=cState.veil;drawCreator()});
+    $("#c-img").addEventListener("change",e=>{const f=e.target.files[0];if(!f)return;const u=URL.createObjectURL(f),im=new Image();
+      im.onload=()=>{bgImg=im;cState.bg="image";$("#c-bg").value="image";if(!cState.veil){cState.veil=30;$("#c-veil").value=30;$("#c-veilv").textContent=30}
+        if(cState.tpl==="prix"){cState.tpl="plv";$("#c-tpl").value="plv"}$("#c-st").textContent="Fond importé ✓";$("#c-st").className="status ok";drawCreator()};
+      im.onerror=()=>{$("#c-st").textContent="Cette image ne peut pas être lue. Essayez un JPG ou un PNG.";$("#c-st").className="status err"};im.src=u});
+    $("#c-sw").onclick=e=>{const b=e.target.closest("button");if(!b)return;cState.col=b.dataset.c;$("#c-sw").querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x===b));drawCreator()};
+    (document.fonts&&document.fonts.ready?document.fonts.ready:Promise.resolve()).then(drawCreator);
+    $("#c-save").hidden=!downloads;
+    $("#c-save").onclick=async()=>{try{const b=await canvasBlob();const r=await downloads.save({filename:`Equipe${E}_${cState.tpl==="plv"?"PLV":"ILV"}_${cState.tpl}.png`,data:b});$("#c-st").textContent=r.status==="saved"?"Image enregistrée":"";$("#c-st").className="status ok"}catch(err){$("#c-st").textContent=err&&err.code==="cancelled"?"":"Enregistrement impossible";$("#c-st").className="status err"}};
+    $("#c-add").onclick=async()=>{const st=$("#c-st");if(!assets){st.textContent="Connecte-toi pour l'ajouter, ou fais une capture d'écran.";st.className="status err";return}
+      try{st.textContent="Ajout…";st.className="status";const b=await canvasBlob();const r=await assets.upload(b);const nm=`${cState.tpl==="plv"?"PLV":"ILV"}_${cState.tpl}_${pending.length+1}.png`;
+        pending.push({id:r.id,name:nm,type:"image/png"});ls.set(draftKey(),collect(p));renderThumbs();st.textContent="Ajouté à ta production ✓";st.className="status ok"}
+      catch(err){st.textContent="Échec ("+(err&&err.code||"erreur")+")";st.className="status err"}};
+  }
+}
+
+function fileName(p){return `Groupe${G}_Equipe${E}_Pole${p}_${POLES[p].fichier}_S${S}`}
+function renderMission(){
+  clearTimeout(saveT);
+  const p=poleOf(E,S), P=POLES[p], M=missionActs(p), k=key(E,p), st=stateOf(E,p);
+  const draft=ls.get(draftKey(),{}), chk=ls.get(checkKey(),{});
+  pending=draft._files||[];
+  const mine=myDoc&&myDoc.missions&&myDoc.missions["S"+S+"_"+k];
+  const actsHTML = `<div class="checks" id="checks">${M.acts.map((a,i)=>`<label><input type="checkbox" data-i="${i}" ${chk[i]?"checked":""}><span>${esc(a)}</span></label>`).join("")}</div>`
+    + (M.variants?`<div class="label">À ajouter après l'observation · selon l'organisation</div><div class="grid2">${M.variants.map(V=>`<div class="variant"><b>${esc(V.t)}</b><ul class="clean">${V.a.map(a=>`<li>${esc(a.replace("Partie A · ",""))}</li>`).join("")}</ul></div>`).join("")}</div><p class="muted">La responsable vous dira quelle version suivre.</p>`:"");
+  let tools="";
+  if(p===1) tools=recepHTML(draft)+invHTML(draft);
+  if(p===2) tools=prixHTML(draft)+ficheHTML();
+  if(p===4) tools=ficheHTML("PARTIE A","var(--p4)");
+  if(p===3){ if(P3[S].lin) tools=linHTML(draft);
+    if(P3[S].vitrine){const ret=reglages.retenu;
+      tools+=`<div class="concours"><span class="label">Concours entre les deux équipes 3</span><h3>Un seul projet sera réalisé</h3>
+        <p>Les équipes 3 des deux demi-groupes dessinent chacune un projet de vitrine d'automne. La responsable choisit le plus pertinent, et c'est cette équipe qui réalisera la vitrine.</p>
+        <div><b>Grille du jury</b><ul class="clean">${JURY.map(c=>`<li>${c}</li>`).join("")}</ul></div>
+        ${ret?`<p class="status ${ret===G?"ok":""}">${ret===G?"Votre projet a été retenu : vous réaliserez la vitrine.":"Le projet du groupe "+ret+" a été retenu."}</p>`:""}</div>`}
+    tools+=creatorHTML(); }
+  $("#mission-out").innerHTML=`
+  <article class="mission" style="--c:${P.c}">
+    <div class="mhead">
+      <div class="stack" style="gap:4px"><div class="label">Groupe ${G} · Équipe ${E} · Séance ${S} · ${WEEKS[S-1].d} · ${esc(P.lieu)}</div><h2>Pôle ${p} — ${esc(P.nom)}</h2><span>${esc(M.sub)}</span></div>
+      <div class="ring" id="ring" aria-label="Avancement des étapes"><span id="ringtxt">0%</span></div>
+    </div>
+    <div class="mbody">
+      ${st==="valide"?`<div class="callout glow"><b>Mission validée ✓</b><span>La lumière de votre équipe est allumée sur la façade du pôle ${p}.</span></div>`:""}
+      ${mine&&mine.retour?`<div class="callout retour"><span class="label">Retour de la responsable</span><p style="white-space:pre-wrap">${esc(mine.retour)}</p></div>`:""}
+      <div class="mcols">
+        <div class="stack"><div class="label">Votre mission</div><p>${esc(P.intro)}</p><div class="label">Étapes · cochez au fur et à mesure</div>${actsHTML}</div>
+        <div class="stack" style="align-content:start">
+          ${p===1||p===3?`<div class="callout"><span class="label">Sécurité</span><p>Escabeau tenu par un camarade, charges lourdes à deux, allée et porte toujours libres.</p></div>`:""}
+          <div class="callout"><span class="label">Production à rendre</span><p>${esc(P.production)}</p></div>
+          <div class="callout"><span class="label">Critères de réussite</span><ul class="clean">${P.criteres.map(c=>`<li>${esc(c)}</li>`).join("")}</ul></div>
+          <div class="callout"><span class="label">Nom de fichier pour l'ENT</span><div class="fname"><code id="fname">${fileName(p)}</code><button type="button" class="btn ghost sm" id="copyname">Copier</button></div></div>
+          <p class="ref" style="--c:${P.c}">${esc(P.rap)}</p>
+        </div>
+      </div>
+      ${tools}
+      <form class="rendu" id="rendu" novalidate>
+        <div><div class="label">Remettre la production</div><h3>${fileName(p)}</h3></div>
+        <div id="online-banner"></div>
+        <div class="row3">
+          <div class="field"><label for="f-nom">Prénom et nom</label><input type="text" id="f-nom" value="${esc(draft.nom||ls.get("lb_nom",""))}" autocomplete="name"></div>
+          <div class="field"><label for="f-membres">Membres de l'équipe</label><input type="text" id="f-membres" value="${esc(draft.membres||"")}"></div>
+          <div class="field"><label for="f-role">Mon rôle</label><select id="f-role">${["","Chef d'équipe","Photographe","Rédacteur","Contrôleur qualité"].map(r=>`<option ${draft.role===r?"selected":""}>${r}</option>`).join("")}</select></div>
+        </div>
+        ${P.questions.map(q=>`<div class="field"><label for="f-${q.id}">${esc(q.l)}</label>${q.id==="px4"?`<input type="text" inputmode="decimal" id="f-px4" value="${esc(draft.px4||"")}" placeholder="12,90" style="max-width:200px">`:`<textarea id="f-${q.id}">${esc(draft[q.id]||"")}</textarea>`}</div>`).join("")}
+        <div class="field"><span class="flabel">Photos, audio ou vidéo</span><span class="hint">${esc(P.photos)}. Les photos sont réduites avant l'envoi.</span>
+          <label class="filebtn" id="filebtn"><input type="file" id="f-files" accept="image/*,video/*,audio/*" multiple>+ Ajouter des fichiers</label>
+          <div class="thumbs" id="thumbs"></div></div>
+        <div class="field"><span class="flabel">Autoévaluation de l'équipe</span><div class="radios">${["Réussi","En partie","À retravailler"].map(v=>`<label><input type="radio" name="auto" value="${v}" ${draft.auto===v?"checked":""}><span>${v}</span></label>`).join("")}</div></div>
+        <div class="field"><label for="f-diff">Une difficulté et comment vous l'avez gérée</label><textarea id="f-diff" style="min-height:70px">${esc(draft.diff||"")}</textarea></div>
+        <div class="actions"><button class="btn glow" type="submit" id="send">${mine?"Renvoyer ma production":"Envoyer à la responsable"}</button><button class="btn ghost" type="button" id="copy">Copier ma fiche</button><span class="status" id="st" role="status"></span></div>
+      </form>
+    </div>
+  </article>`;
+  bindMission(p,M); bindTools(p);
+  renderThumbs(); renderOnline(); updateRing(M);
+}
+function updateRing(M){
+  const boxes=[...document.querySelectorAll("#checks input")];
+  const pct=boxes.length?Math.round(boxes.filter(b=>b.checked).length/boxes.length*100):0;
+  const r=$("#ring"); if(r){r.style.setProperty("--p",pct);$("#ringtxt").textContent=pct+"%"}
+}
+function collect(p){const o={nom:$("#f-nom").value.trim(),membres:$("#f-membres").value.trim(),role:$("#f-role").value};
+  POLES[p].questions.forEach(q=>{const e=$("#f-"+q.id);o[q.id]=e?e.value:""});
+  o.auto=(document.querySelector('input[name=auto]:checked')||{}).value||""; o.diff=$("#f-diff").value; o._files=pending;
+  const inv=readInv(), rc=readRecep(), ln=readLin(), px=readPrix(); if(px)o.prix=px; if(inv){o.inv=inv;o.invZone=$("#f-zone").value} if(rc)o.recep=rc; if(ln)o.lin=ln; return o}
+function toolsText(d){let t="";
+  if(d.recep){const R=RECEP[S];t+=`CONTRÔLE DE RÉCEPTION ${R.bl}\n`+R.lignes.map((l,i)=>{const r=d.recep.rows[i]||{};return `${l.ref} · commandé ${l.cmd} · livré ${l.liv} · reçu ${r.recu||"?"} · ${r.statut||"?"} ${r.obs?"· "+r.obs:""}`}).join("\n")+`\nDécision : ${d.recep.decision||"—"}\nRéserves : ${d.recep.reserves||"—"}\n\n`}
+  if(d.inv){t+="INVENTAIRE · "+(d.invZone||"")+"\nCode | Famille | Désignation | Taille | Compté | État | Empl.\n"+d.inv.filter(r=>r.des||r.cpt).map(r=>[r.code,r.fam,r.des,r.taille,r.cpt,r.etat,r.empl].join(" | ")).join("\n")+"\n\n"}
+  if(d.prix){const x=d.prix;t+=`PRIX · PA HT ${x.pa} · coef ${x.coef} · TVA ${x.tva} % · concurrents ${[x.c1,x.c2,x.c3].filter(Boolean).join(" / ")} · prix final TTC ${x.final}\n\n`}
+  if(d.lin){t+=`LINÉAIRE · ${d.lin.n} éléments × ${d.lin.l} m × ${d.lin.v} niveaux\n`+d.lin.rows.map(r=>`${r.fam} · ${r.niv||"?"} · ${r.al||"?"} m · produit ${r.larg||"?"} cm`).join("\n")+"\n\n"}
+  return t}
+let saveT;
+function bindMission(p,M){
+  const c=$("#checks"); if(c) c.addEventListener("change",()=>{const o={};c.querySelectorAll("input").forEach(b=>{if(b.checked)o[b.dataset.i]=1});ls.set(checkKey(),o);updateRing(M)});
+  $("#rendu").addEventListener("input",()=>{clearTimeout(saveT);saveT=setTimeout(()=>{const d=collect(p);ls.set(draftKey(),d);ls.set("lb_nom",d.nom)},400)});
+  $("#f-files").addEventListener("change",onFiles(p));
+  $("#copy").addEventListener("click",()=>copyText(ficheText(p),"Fiche copiée. Colle-la sur l'ENT avec le nom de fichier indiqué."));
+  $("#copyname").addEventListener("click",()=>copyText(fileName(p),"Nom de fichier copié."));
+  $("#rendu").addEventListener("submit",ev=>{ev.preventDefault();send(p)});
+}
+function renderThumbs(){const t=$("#thumbs");if(!t)return;
+  t.innerHTML=pending.map((f,i)=>`<div class="thumb">${f.type.startsWith("image")?`<img src="/_blob/${esc(f.id)}" alt="">`:`<div class="vid">${f.type.startsWith("audio")?"Audio":"Vidéo"}</div>`}<span>${esc(f.name)}</span><button type="button" data-i="${i}">Retirer</button></div>`).join("");
+  updateFiche();
+  t.onclick=e=>{const b=e.target.closest("button");if(!b)return;pending.splice(+b.dataset.i,1);ls.set(draftKey(),collect(poleOf(E,S)));renderThumbs()}}
+function setSt(m,c){const s=$("#st");if(s){s.textContent=m;s.className="status "+(c||"")}}
+function shrink(file){return new Promise(res=>{if(!file.type.startsWith("image/")||file.type==="image/gif")return res(file);const img=new Image(),u=URL.createObjectURL(file);
+  img.onload=()=>{const r=Math.min(1,1600/Math.max(img.width,img.height)),c=document.createElement("canvas");c.width=Math.round(img.width*r);c.height=Math.round(img.height*r);c.getContext("2d").drawImage(img,0,0,c.width,c.height);c.toBlob(b=>{URL.revokeObjectURL(u);res(b||file)},"image/jpeg",.82)};
+  img.onerror=()=>{URL.revokeObjectURL(u);res(file)};img.src=u})}
+function onFiles(p){return async e=>{const files=[...e.target.files];e.target.value="";
+  if(!assets){setSt("L'ajout de fichiers demande d'être connecté. Dépose-les sur l'ENT.","err");return}
+  for(const f of files){setSt("Envoi de « "+f.name+" »…");
+    try{const b=await shrink(f);if(b.size>20*1024*1024){setSt("« "+f.name+" » dépasse 20 Mo : dépose-le sur l'ENT.","err");continue}
+      const r=await assets.upload(b);pending.push({id:r.id,name:f.name,type:b.type||f.type||"image/jpeg"});ls.set(draftKey(),collect(p));renderThumbs();setSt(pending.length+" fichier(s) ajouté(s).","ok")}
+    catch(err){setSt("« "+f.name+" » n'a pas pu être envoyé ("+(err&&err.code||"erreur")+").","err")}}}}
+function ficheText(p){const d=collect(p),P=POLES[p];let t=`${fileName(p)}\nPôle ${p} — ${P.nom}\nÉquipe ${E} · Séance ${S}\nNom : ${d.nom}\nMembres : ${d.membres}\nRôle : ${d.role}\n\n`;
+  t+=toolsText(d);P.questions.forEach(q=>t+=`${q.l}\n${d[q.id]||"—"}\n\n`);return t+`Autoévaluation : ${d.auto||"—"}\nDifficulté : ${d.diff||"—"}\nFichiers joints : ${pending.length}`}
+async function copyText(txt,ok){try{await navigator.clipboard.writeText(txt);setSt(ok,"ok")}catch(e){const ta=document.createElement("textarea");ta.value=txt;ta.style.cssText="width:100%;min-height:160px";$("#st").after(ta);ta.select();setSt("Sélectionne le texte ci-dessous et copie-le.","")}}
+let sending=false;
+async function send(p){
+  if(sending)return;const d=collect(p);
+  if(!d.nom){setSt("Indique ton prénom et ton nom.","err");$("#f-nom").focus();return}
+  if(!db||!uid){setSt("Envoi en ligne impossible ici : utilise « Copier ma fiche ».","err");return}
+  sending=true;$("#send").disabled=true;setSt("Envoi…");
+  const k=key(E,p), mk="S"+S+"_"+k, now=new Date().toISOString();
+  const prev=myDoc&&myDoc.missions&&myDoc.missions[mk];
+  const entry={...d,files:pending,groupe:G,equipe:E,seance:S,pole:p,cle:k,envoye:now};delete entry._files;
+  if(prev&&prev.retour) entry.retour=prev.retour;
+  try{
+    const ref=db.doc("rendus/"+uid), snap=await ref.get();
+    if(snap.exists) await ref.update({nom:d.nom,missions:{[mk]:entry},maj:now}); else await ref.set({nom:d.nom,missions:{[mk]:entry},maj:now});
+    const sref=db.doc("signaux/"+uid), ss=await sref.get();
+    if(ss.exists) await sref.update({sent:{[k]:true}}); else await sref.set({sent:{[k]:true}});
+    setSt("Envoyé ✓ Ta lumière clignote sur la façade en attendant la validation.","ok");
+  }catch(err){setSt("L'envoi a échoué ("+(err&&err.code||"erreur")+"). Réessaie ou copie ta fiche.","err")}
+  sending=false;const b=$("#send");if(b)b.disabled=false;
+}
+function renderOnline(){const b=$("#online-banner");if(!b)return;
+  b.innerHTML=db&&uid?"":`<div class="banner">Tu n'es pas connecté·e : ta fiche reste enregistrée sur cet appareil. Copie-la et dépose-la sur l'ENT avec le nom de fichier indiqué.</div>`;
+  const fb=$("#filebtn");if(fb)fb.hidden=!assets}
+
+/* ---------- espace responsable ---------- */
+let allRendus=[];
+function renderVitrineSeg(){[["#seg-demont","demontage"],["#seg-retenu","retenu"]].forEach(([id,k])=>{const el=$(id);if(el)el.querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.v===(reglages[k]||"")))})}
+[["#seg-demont","demontage"],["#seg-retenu","retenu"]].forEach(([id,k])=>$(id).addEventListener("click",async e=>{const b=e.target.closest("button");if(!b||!db)return;
+  reglages={...reglages,[k]:b.dataset.v};renderVitrineSeg();renderMission();const st=$("#reglage-status");
+  try{await db.doc("etat/reglages").set(reglages);st.textContent="Enregistré";st.className="status ok"}catch(err){st.textContent="Non enregistré ("+(err.code||"erreur")+")";st.className="status err"}}));
+["#f-sea","#f-eq","#f-grp"].forEach(s=>$(s).addEventListener("change",renderRendus));
+function renderRendus(){
+  if(!isProf)return;const fs=$("#f-sea").value,fe=$("#f-eq").value,fg=$("#f-grp").value;
+  const list=allRendus.filter(r=>(!fs||r.seance==fs)&&(!fe||r.equipe==fe)&&(!fg||r.groupe==fg)).sort((a,b)=>String(a.groupe).localeCompare(b.groupe)||(a.seance-b.seance)||(a.equipe-b.equipe)||String(b.envoye).localeCompare(a.envoye));
+  if(!list.length){$("#rendus").innerHTML=`<div class="empty">${allRendus.length?"Aucune production pour ce filtre.":"Les productions des élèves apparaîtront ici dès leur envoi."}</div>`;return}
+  $("#rendus").innerHTML=list.map((r,i)=>{const P=POLES[r.pole]||POLES[1];const v=!!valide[r.cle];
+    return `<div class="rcard" style="--c:${P.c}">
+      <div class="actions" style="justify-content:space-between"><b class="mono">Groupe ${esc(r.groupe||"?")} · Equipe${esc(r.equipe)}_Pole${esc(r.pole)} · Séance ${esc(r.seance)}</b><span class="chip">${esc(r.auto||"sans autoévaluation")}</span></div>
+      <div><b>${esc(r.nom)}</b> <span class="muted">· ${esc(r.role||"")} · ${esc(r.membres||"")} · ${new Date(r.envoye).toLocaleString("fr-FR",{dateStyle:"short",timeStyle:"short"})}</span></div>
+      <dl>${P.questions.map(q=>`<div><dt>${esc(q.l)}</dt><dd>${esc(r[q.id]||"—")}</dd></div>`).join("")}<div><dt>Difficulté</dt><dd>${esc(r.diff||"—")}</dd></div></dl>
+      ${teacherTools(r)}
+      ${(r.files||[]).length?`<div class="thumbs">${r.files.map(f=>`<a class="thumb" href="/_blob/${esc(f.id)}" target="_blank" rel="noopener">${f.type&&f.type.startsWith("image")?`<img src="/_blob/${esc(f.id)}" alt="${esc(f.name)}" loading="lazy">`:`<div class="vid">${f.type&&f.type.startsWith("audio")?"Audio":"Vidéo"}</div>`}<span>${esc(f.name)}</span></a>`).join("")}</div>`:""}
+      <div class="field"><label for="ret-${i}">Retour à l'élève</label><textarea id="ret-${i}" style="min-height:70px">${esc(r.retour||"")}</textarea></div>
+      <div class="actions"><button type="button" class="btn ghost sm" data-act="retour" data-i="${i}">Envoyer le retour</button>
+      <button type="button" class="btn ${v?"ghost":"glow"} sm" data-act="valider" data-i="${i}">${v?"Éteindre la lumière":"Valider et allumer"}</button><span class="status" id="rs-${i}"></span></div>
+    </div>`}).join("");
+  $("#rendus").onclick=async e=>{const b=e.target.closest("button[data-act]");if(!b)return;const r=list[+b.dataset.i],st=$("#rs-"+b.dataset.i);
+    try{if(b.dataset.act==="retour"){const txt=$("#ret-"+b.dataset.i).value;await db.doc("rendus/"+r._doc).update({missions:{[r._key]:{retour:txt}}});st.textContent="Retour envoyé";st.className="status ok"}
+      else{const next={...valide};if(next[r.cle])delete next[r.cle];else next[r.cle]=true;valide=next;renderAll();await db.doc("etat/progression").set({valide:next})}}
+    catch(err){st.textContent="Échec ("+(err.code||"erreur")+")";st.className="status err"}};
+}
+
+function teacherTools(r){let h="";
+  if(r.recep&&RECEP[r.seance]){const R=RECEP[r.seance];let ok=0;
+    const rows=R.lignes.map((l,i)=>{const x=r.recep.rows&&r.recep.rows[i]||{};const g=x.statut===l.cle;if(g)ok++;
+      return `<tr><td class="mono">${l.ref}</td><td class="mono">${l.cmd||"—"}/${l.liv}/${esc(x.recu||"?")}</td><td>${esc(x.statut||"—")}</td><td style="color:var(${g?"--ok":"--err"})">${g?"✓":"✗ "+esc(l.cle)}</td><td>${esc(x.obs||"")}</td></tr>`}).join("");
+    h+=`<div class="stack" style="gap:6px"><b>Contrôle de réception ${R.bl} · ${ok}/${R.lignes.length}</b><div class="tablewrap"><table style="min-width:520px"><thead><tr><th>Réf.</th><th>Cmd/Livré/Reçu</th><th>Constat élève</th><th>Corrigé</th><th>Observation</th></tr></thead><tbody>${rows}</tbody></table></div>
+      <div><b>Décision :</b> ${esc(r.recep.decision||"—")} <span class="muted">(attendu : accepter avec réserves)</span></div><div style="white-space:pre-wrap"><b>Réserves :</b> ${esc(r.recep.reserves||"—")}</div></div>`}
+  if(r.inv){const L=r.inv.filter(x=>x.des||x.cpt);let art=0;L.forEach(x=>{const c=num(x.cpt);if(c!==null)art+=c});
+    h+=`<div class="stack" style="gap:6px"><b>Inventaire ${esc(r.invZone||"")} · ${L.length} références · ${art} articles</b><div class="tablewrap"><table style="min-width:640px"><thead><tr><th>Code</th><th>Famille</th><th>Désignation</th><th>Taille</th><th>Compté</th><th>État</th><th>Empl.</th></tr></thead><tbody>
+      ${L.map(x=>`<tr><td class="mono">${esc(x.code)}</td><td>${esc(x.fam)}</td><td>${esc(x.des)}</td><td>${esc(x.taille)}</td><td class="mono">${esc(x.cpt)}</td><td>${esc(x.etat)}</td><td>${esc(x.empl)}</td></tr>`).join("")}</tbody></table></div></div>`}
+  if(r.prix){const x=r.prix,pa=num(x.pa),co=num(x.coef),t=num(x.tva)/100,fin=num(x.final);
+    h+=`<div><b>Prix :</b> PA HT ${esc(x.pa||"?")} € × ${esc(x.coef||"?")} → ${pa!==null&&co!==null?eur(pa*co)+" HT · "+eur(pa*co*(1+t))+" TTC":"?"} · TVA ${esc(x.tva)} % · concurrents ${esc([x.c1,x.c2,x.c3].filter(Boolean).join(" / ")||"—")} · <b>prix final ${fin!==null?eur(fin):"—"}</b>${fin!==null&&pa!==null?" · marge "+eur(fin/(1+t)-pa):""}</div>`}
+  if(r.lin){const n=num(r.lin.n),l=num(r.lin.l),v=num(r.lin.v),las=n!==null&&l!==null?n*l:null,ld=las!==null&&v!==null?las*v:null;
+    h+=`<div class="stack" style="gap:6px"><b>Linéaire · ${esc(r.lin.n)} éléments × ${esc(r.lin.l)} m × ${esc(r.lin.v)} niveaux → au sol ${las!==null?mfmt(las):"?"} · développé ${ld!==null?mfmt(ld):"?"}</b>
+      <ul class="clean">${(r.lin.rows||[]).map(x=>`<li>${esc(x.fam)} · ${esc(x.niv||"?")} · ${esc(x.al||"?")} m · produit ${esc(x.larg||"?")} cm${num(x.al)!==null&&num(x.larg)?" → "+Math.floor(num(x.al)*100/num(x.larg))+" facings":""}</li>`).join("")}</ul></div>`}
+  return h}
+
+function renderAll(){renderFacade();renderCards();renderRendus()}
+
+/* ---------- démarrage ---------- */
+renderCal(); renderPickers(); renderMission(); renderVitrineSeg(); renderAll();
+{const t=ls.get("lb_tab","accueil");showTab(t==="prof"?"accueil":t)}
+
+(async()=>{
+  if(!window.claude||!claude.use)return;
+  try{
+    [db,user,assets,downloads]=await Promise.all([claude.use("db"),claude.use("user"),claude.use("assets"),claude.use("downloads")]);{const cs=$("#c-save");if(cs)cs.hidden=!downloads}
+    if(user){try{uid=await user.id()}catch(e){}try{isProf=!!((await user.canEdit())||(await user.isOwner()))}catch(e){}}
+    if(db){
+      db.doc("etat/progression").onSnapshot(s=>{valide=(s.exists&&s.data().valide)||{};renderAll();if(!document.activeElement||!document.activeElement.closest(".mbody"))renderMission()},()=>{});
+      db.doc("etat/reglages").onSnapshot(s=>{const d=s.exists?s.data():{};reglages={demontage:d.demontage||"",retenu:d.retenu||""};renderVitrineSeg();if(!document.activeElement||!document.activeElement.closest(".mbody"))renderMission()},()=>{});
+      db.collection("signaux").onSnapshot(q=>{const o={};q.docs.forEach(d=>{Object.keys((d.data()||{}).sent||{}).forEach(k=>o[k]=true)});rendusSignal=o;renderAll()},()=>{});
+      if(uid) db.doc("rendus/"+uid).onSnapshot(s=>{const before=JSON.stringify(myDoc&&myDoc.missions&&Object.values(myDoc.missions).map(m=>m.retour));myDoc=s.exists?s.data():null;
+        const after=JSON.stringify(myDoc&&myDoc.missions&&Object.values(myDoc.missions).map(m=>m.retour));if(before!==after&&!document.activeElement.closest(".mbody"))renderMission()},()=>{});
+      if(isProf){$("#tab-prof").hidden=false;
+        db.collection("rendus").onSnapshot(q=>{allRendus=[];q.docs.forEach(d=>{const x=d.data()||{};Object.entries(x.missions||{}).forEach(([k,r])=>allRendus.push({...r,_doc:d.id,_key:k}))});renderRendus()},()=>{});
+        renderCards();}
+    }
+    renderOnline();
+  }catch(e){renderOnline()}
+})();
+</script>
+
+</body>
+</html>
